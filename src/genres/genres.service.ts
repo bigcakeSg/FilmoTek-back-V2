@@ -1,18 +1,17 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Model } from 'mongoose';
-import { CreateGenreDto } from './dto/create-genre.dto';
-import { Genre } from './interfaces/genre.interface';
+import { GenreDocument } from './schemas/genre.schema';
 
 @Injectable()
 export class GenresService {
-  constructor(@Inject('GENRE_MODEL') private readonly genreModel: Model<Genre>) {}
+  constructor(@Inject('GENRE_MODEL') private readonly genreModel: Model<GenreDocument>) {}
 
-  async create(createGenreDto: CreateGenreDto): Promise<Genre> {
+  async create(createGenreDto: GenreDocument): Promise<GenreDocument> {
     const createdGenre = this.genreModel.create(createGenreDto);
     return createdGenre;
   }
 
-  async findAll(): Promise<Genre[]> {
+  async findAll(): Promise<GenreDocument[]> {
     return this.genreModel.find().exec();
   }
 }

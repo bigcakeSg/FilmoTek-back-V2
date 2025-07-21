@@ -1,6 +1,15 @@
-import * as mongoose from 'mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { HydratedDocument } from 'mongoose';
 
-export const GenreSchema = new mongoose.Schema({
-  id: String,
-  text: String,
-});
+export type GenreDocument = HydratedDocument<Genre>;
+
+@Schema()
+export class Genre {
+  @Prop({ required: true })
+  id: string;
+
+  @Prop({ required: true })
+  text: string;
+}
+
+export const GenreSchema = SchemaFactory.createForClass(Genre);
