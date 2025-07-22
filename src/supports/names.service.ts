@@ -10,4 +10,12 @@ export class SupportsService {
     const supports = await this.supportModel.findOne({ type: support }).exec();
     return supports.movies;
   }
+
+  async addMovieToSupportType(support: string, movieId: string): Promise<void> {
+    await this.supportModel.updateOne({ type: support }, { $addToSet: { movies: movieId } }).exec();
+  }
+
+  async deleteMovieFromSupportType(support: string, movieId: string): Promise<void> {
+    await this.supportModel.updateOne({ type: support }, { $pull: { movies: movieId } }).exec();
+  }
 }

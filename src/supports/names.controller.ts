@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Patch } from '@nestjs/common';
 import { SupportsService } from './names.service';
 
 @Controller('supports')
@@ -6,7 +6,17 @@ export class SupportsController {
   constructor(private readonly supportsService: SupportsService) {}
 
   @Get(':support')
-  async GetMoviesBySupportType(@Param() params: { support: string }): Promise<string[]> {
+  async getMoviesBySupportType(@Param() params: { support: string }): Promise<string[]> {
     return this.supportsService.findMoviesBySupportType(params.support);
+  }
+
+  @Patch(':support/add-movie/:movieId')
+  async addMovieToSupportType(@Param() params: { support: string; movieId: string }): Promise<void> {
+    this.supportsService.addMovieToSupportType(params.support, params.movieId);
+  }
+
+  @Patch(':support/delete-movie/:movieId')
+  async deleteMovieFromSupportType(@Param() params: { support: string; movieId: string }): Promise<void> {
+    this.supportsService.deleteMovieFromSupportType(params.support, params.movieId);
   }
 }
