@@ -5,7 +5,7 @@ export type SupportDocument = HydratedDocument<Support>;
 
 @Schema()
 export class Support {
-  @Prop({ required: true })
+  @Prop({ required: true, unique: true })
   type: string;
 
   @Prop({ required: true })

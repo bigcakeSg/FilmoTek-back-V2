@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, HttpException } from '@nestjs/common';
 import { NamesService } from './names.service';
 import { NameDocument } from './schemas/name.schema';
 
@@ -8,7 +8,11 @@ export class NamesController {
 
   @Post()
   async create(@Body() createNameDto: NameDocument) {
-    return this.namesService.create(createNameDto);
+    try {
+      return this.namesService.create(createNameDto);
+    } catch (error) {
+      throw new HttpException(error.message, 500);
+    }
   }
 
   @Get()

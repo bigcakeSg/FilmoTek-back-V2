@@ -12,6 +12,6 @@ export class GenresService {
   }
 
   async findAll(): Promise<GenreDocument[]> {
-    return this.genreModel.find().exec();
+    return this.genreModel.find().select('-__v').exec();
   }
 }

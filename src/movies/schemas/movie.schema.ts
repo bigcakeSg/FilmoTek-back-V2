@@ -8,7 +8,7 @@ export type MovieDocument = HydratedDocument<Movie>;
 
 @Schema()
 export class Movie {
-  @Prop({ required: true })
+  @Prop({ required: true, unique: true })
   imdbId: string;
 
   @Prop({ required: true })

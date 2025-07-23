@@ -9,7 +9,14 @@ export class MoviesService {
   async findOneMovie(movieId: string): Promise<MovieDocument | null> {
     return this.movieModel
       .findById(movieId)
-      .populate('genres directors.name writers.name casting.principal.name casting.extended.name')
+      .populate([
+        { path: 'genres', select: '-__v' },
+        { path: 'directors.name', select: '-__v' },
+        { path: 'writers.name', select: '-__v' },
+        { path: 'casting.principal.name', select: '-__v' },
+        { path: 'casting.extended.name', select: '-__v' },
+      ])
+      .select('-__v')
       .exec();
   }
 
@@ -18,7 +25,14 @@ export class MoviesService {
       .find()
       .skip(start)
       .limit(limit)
-      .populate('genres directors.name writers.name casting.principal.name casting.extended.name')
+      .populate([
+        { path: 'genres', select: '-__v' },
+        { path: 'directors.name', select: '-__v' },
+        { path: 'writers.name', select: '-__v' },
+        { path: 'casting.principal.name', select: '-__v' },
+        { path: 'casting.extended.name', select: '-__v' },
+      ])
+      .select('-__v')
       .exec();
   }
 }

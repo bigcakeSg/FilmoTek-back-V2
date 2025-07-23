@@ -7,7 +7,7 @@ export class SupportsService {
   constructor(@Inject('SUPPORT_MODEL') private readonly supportModel: Model<SupportDocument>) {}
 
   async findMoviesBySupportType(support: string): Promise<string[]> {
-    const supports = await this.supportModel.findOne({ type: support }).exec();
+    const supports = await this.supportModel.findOne({ type: support }).select('-__v').exec();
     return supports.movies;
   }
 

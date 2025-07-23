@@ -12,6 +12,6 @@ export class NamesService {
   }
 
   async findAll(): Promise<NameDocument[]> {
-    return this.nameModel.find().exec();
+    return this.nameModel.find().select('-__v').exec();
   }
 }

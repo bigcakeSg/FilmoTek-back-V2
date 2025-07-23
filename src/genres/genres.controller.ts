@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, HttpException } from '@nestjs/common';
 import { GenresService } from './genres.service';
 import { GenreDocument } from './schemas/genre.schema';
 
@@ -8,7 +8,11 @@ export class GenresController {
 
   @Post()
   async create(@Body() createGenreDto: GenreDocument) {
-    return this.genresService.create(createGenreDto);
+    try {
+      return await this.genresService.create(createGenreDto);
+    } catch (error) {
+      throw new HttpException(error.message, 500);
+    }
   }
 
   @Get()
