@@ -11,6 +11,10 @@ export class GenresController {
     try {
       return await this.genresService.createGenre(createGenreDto);
     } catch (error) {
+      //MongoDB unicity error.code === 11000
+      if (error.code === 11000) {
+        throw new HttpException('Genre already exists', 409);
+      }
       throw new HttpException(error.message, 500);
     }
   }

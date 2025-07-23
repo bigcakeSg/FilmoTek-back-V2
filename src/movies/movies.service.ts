@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { HttpException, Inject, Injectable } from '@nestjs/common';
 import { Model, Types } from 'mongoose';
 import { MovieDto, Name } from './dto/movie.dto';
 import { MovieDocument } from './schemas/movie.schema';
@@ -43,6 +43,16 @@ export class MoviesService {
   }
 
   async createMovie(movieData: MovieDto): Promise<MovieDocument> {
+    const isMovieExists = await this.movieModel
+      .exists({
+        imdbId: movieData.imdbId,
+      })
+      .exec();
+
+    if (isMovieExists) {
+      throw new HttpException(`Movie with imdbId ${movieData.imdbId} already exists.`, 409);
+    }
+
     const genres = await Promise.all(
       movieData.genres.map(async (genre) => {
         const genreId = await this.genreModel

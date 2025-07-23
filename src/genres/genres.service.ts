@@ -7,8 +7,7 @@ export class GenresService {
   constructor(@Inject('GENRE_MODEL') private readonly genreModel: Model<GenreDocument>) {}
 
   async createGenre(createGenreDto: GenreDocument): Promise<GenreDocument> {
-    const createdGenre = this.genreModel.create(createGenreDto);
-    return createdGenre;
+    return await this.genreModel.create(createGenreDto);
   }
 
   async findAllGenres(): Promise<GenreDocument[]> {

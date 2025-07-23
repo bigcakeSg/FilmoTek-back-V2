@@ -1,5 +1,5 @@
 import { Controller, Get, HttpException, Param, Patch } from '@nestjs/common';
-import { SupportsService } from './names.service';
+import { SupportsService } from './supports.service';
 
 @Controller('supports')
 export class SupportsController {

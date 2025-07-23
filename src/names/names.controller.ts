@@ -7,16 +7,20 @@ export class NamesController {
   constructor(private readonly namesService: NamesService) {}
 
   @Post()
-  async create(@Body() createNameDto: NameDocument) {
+  async createName(@Body() createNameDto: NameDocument) {
     try {
-      return this.namesService.create(createNameDto);
+      return await this.namesService.createName(createNameDto);
     } catch (error) {
+      //MongoDB unicity error.code === 11000
+      if (error.code === 11000) {
+        throw new HttpException('Name already exists', 409);
+      }
       throw new HttpException(error.message, 500);
     }
   }
 
   @Get()
-  async findAll(): Promise<NameDocument[]> {
-    return this.namesService.findAll();
+  async findAllNames(): Promise<NameDocument[]> {
+    return this.namesService.findAllNames();
   }
 }

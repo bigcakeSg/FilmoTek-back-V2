@@ -6,12 +6,11 @@ import { NameDocument } from './schemas/name.schema';
 export class NamesService {
   constructor(@Inject('NAME_MODEL') private readonly nameModel: Model<NameDocument>) {}
 
-  async create(createNameDto: NameDocument): Promise<NameDocument> {
-    const createdName = this.nameModel.create(createNameDto);
-    return createdName;
+  async createName(createNameDto: NameDocument): Promise<NameDocument> {
+    return await this.nameModel.create(createNameDto);
   }
 
-  async findAll(): Promise<NameDocument[]> {
+  async findAllNames(): Promise<NameDocument[]> {
     return this.nameModel.find().select('-__v').exec();
   }
 }

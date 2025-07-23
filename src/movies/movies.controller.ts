@@ -12,7 +12,8 @@ export class MoviesController {
     try {
       return await this.moviesService.createMovie(createMovieDto);
     } catch (error) {
-      throw new HttpException(error.message, 500);
+      console.log('===>', error);
+      throw new HttpException(error.message, error.status || 500);
     }
   }
 
