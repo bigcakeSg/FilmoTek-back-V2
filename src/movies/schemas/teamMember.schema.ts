@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose from 'mongoose';
-import { Picture, PictureSchema } from './picture.schema';
 
 @Schema()
 export class TeamMember {
@@ -14,23 +13,12 @@ export class TeamMember {
 export const TeamMemberSchema = SchemaFactory.createForClass(TeamMember);
 
 @Schema()
-export class CastMember extends TeamMember {
-  @Prop({ default: [] })
-  characters: string[];
-
-  @Prop({ type: PictureSchema, required: true })
-  picture: Picture;
-}
-
-export const CastMemberSchema = SchemaFactory.createForClass(CastMember);
-
-@Schema()
 export class Casting {
-  @Prop({ type: [CastMemberSchema], default: [] })
-  principal: CastMember[];
+  @Prop({ type: [TeamMemberSchema], default: [] })
+  principal: TeamMember[];
 
-  @Prop({ type: [CastMemberSchema], default: [] })
-  extended: CastMember[];
+  @Prop({ type: [TeamMemberSchema], default: [] })
+  extended: TeamMember[];
 }
 
 export const CastingSchema = SchemaFactory.createForClass(Casting);

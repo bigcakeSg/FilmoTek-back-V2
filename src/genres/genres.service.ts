@@ -6,12 +6,12 @@ import { GenreDocument } from './schemas/genre.schema';
 export class GenresService {
   constructor(@Inject('GENRE_MODEL') private readonly genreModel: Model<GenreDocument>) {}
 
-  async create(createGenreDto: GenreDocument): Promise<GenreDocument> {
+  async createGenre(createGenreDto: GenreDocument): Promise<GenreDocument> {
     const createdGenre = this.genreModel.create(createGenreDto);
     return createdGenre;
   }
 
-  async findAll(): Promise<GenreDocument[]> {
+  async findAllGenres(): Promise<GenreDocument[]> {
     return this.genreModel.find().select('-__v').exec();
   }
 }

@@ -7,16 +7,16 @@ export class GenresController {
   constructor(private readonly genresService: GenresService) {}
 
   @Post()
-  async create(@Body() createGenreDto: GenreDocument) {
+  async createGenre(@Body() createGenreDto: GenreDocument) {
     try {
-      return await this.genresService.create(createGenreDto);
+      return await this.genresService.createGenre(createGenreDto);
     } catch (error) {
       throw new HttpException(error.message, 500);
     }
   }
 
   @Get()
-  async findAll(): Promise<GenreDocument[]> {
-    return this.genresService.findAll();
+  async findAllGenres(): Promise<GenreDocument[]> {
+    return this.genresService.findAllGenres();
   }
 }

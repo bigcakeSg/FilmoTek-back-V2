@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 @Schema()
 export class Picture {
-  @Prop({ required: false })
+  @Prop({ required: true })
   url: string;
 
   @Prop({ required: false })
