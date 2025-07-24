@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpException, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpException, Param, Patch, Post, Query } from '@nestjs/common';
 import { MoviesService } from './movies.service';
 import { MovieDocument } from './schemas/movie.schema';
 import { MovieDto } from './dto/movie.dto';
@@ -39,5 +39,10 @@ export class MoviesController {
   @Get('api-data/title/:imdbId')
   async getDataFromApi(@Param('imdbId') imdbId: string): Promise<MovieDto> {
     return this.moviesService.getMovieFromRapidApi(imdbId);
+  }
+
+  @Patch('title/:movieId')
+  async updateMovie(@Param('movieId') movieId: string, @Body() updateMovieDto: MovieDto): Promise<MovieDocument> {
+    return this.moviesService.updateMovie(movieId, updateMovieDto);
   }
 }

@@ -106,16 +106,11 @@ export class MoviesService {
   async findAllMovies(start?: number, limit?: number): Promise<MovieDocument[]> {
     return this.movieModel
       .find()
+      .select('imdbId originalTitle regionalTitles picture releaseDate directors seen')
+      .sort('originalTitle')
       .skip(start)
       .limit(limit)
-      .populate([
-        { path: 'genres', select: '-__v' },
-        { path: 'directors.name', select: '-__v' },
-        { path: 'writers.name', select: '-__v' },
-        { path: 'casting.principal.name', select: '-__v' },
-        { path: 'casting.extended.name', select: '-__v' },
-      ])
-      .select('-__v')
+      .populate([{ path: 'directors.name', select: '-__v' }])
       .exec();
   }
 
@@ -249,6 +244,22 @@ export class MoviesService {
       });
     } catch (error) {
       throw new HttpException(`Failed to fetch movie with imdbId ${imdbId}`, error.response?.status || 500);
+    }
+  }
+
+  async updateMovie(movieId, updateMovieDto): Promise<MovieDocument> {
+    try {
+      const movie = await this.movieModel.findById(movieId);
+      if (!movie) {
+        throw new HttpException('Movie not found', 404);
+      }
+
+      return await this.movieModel
+        .findByIdAndUpdate(movieId, updateMovieDto, { new: true })
+        .select('imdbId originalTitle regionalTitles picture releaseDate directors seen')
+        .populate([{ path: 'directors.name', select: '-__v' }]);
+    } catch (error) {
+      throw new HttpException(`Failed to update movie with id ${movieId}`, error.response?.status || 500);
     }
   }
 }
