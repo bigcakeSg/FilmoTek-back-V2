@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { HttpModule } from '@nestjs/axios';
 import { MoviesController } from './movies.controller';
 import { MoviesService } from './movies.service';
 import { MoviesProviders } from './movies.providers';
@@ -7,7 +8,7 @@ import { GenresProviders } from 'src/genres/genres.providers';
 import { NamesProviders } from 'src/names/names.providers';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, HttpModule],
   controllers: [MoviesController],
   providers: [MoviesService, ...MoviesProviders, ...GenresProviders, ...NamesProviders],
 })

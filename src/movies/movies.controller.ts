@@ -7,17 +7,16 @@ import { MovieDto } from './dto/movie.dto';
 export class MoviesController {
   constructor(private readonly moviesService: MoviesService) {}
 
-  @Post()
+  @Post('title')
   async createMovie(@Body() createMovieDto: MovieDto): Promise<MovieDocument> {
     try {
       return await this.moviesService.createMovie(createMovieDto);
     } catch (error) {
-      console.log('===>', error);
       throw new HttpException(error.message, error.status || 500);
     }
   }
 
-  @Get(':movieId')
+  @Get('title/:movieId')
   async findOneMovie(@Param() params: { movieId: string }): Promise<MovieDocument | null> {
     return this.moviesService.findOneMovie(params.movieId);
   }
@@ -28,12 +27,17 @@ export class MoviesController {
     return this.moviesService.findAllMovies(start, limit);
   }
 
-  @Delete(':movieId')
+  @Delete('title/:movieId')
   async deleteMovie(@Param() params: { movieId: string }): Promise<void> {
     try {
       return this.moviesService.deleteMovie(params.movieId);
     } catch (error) {
       throw new HttpException(error.message, 500);
     }
+  }
+
+  @Get('api-data/title/:imdbId')
+  async getDataFromApi(@Param('imdbId') imdbId: string): Promise<MovieDto> {
+    return this.moviesService.getMovieFromRapidApi(imdbId);
   }
 }

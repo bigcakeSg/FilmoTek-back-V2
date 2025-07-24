@@ -1,4 +1,6 @@
 import { HttpException, Inject, Injectable } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
+import { firstValueFrom } from 'rxjs';
 import { Model, Types } from 'mongoose';
 import { MovieDto, Name } from './dto/movie.dto';
 import { MovieDocument } from './schemas/movie.schema';
@@ -11,6 +13,7 @@ export class MoviesService {
     @Inject('MOVIE_MODEL') private readonly movieModel: Model<MovieDocument>,
     @Inject('GENRE_MODEL') private readonly genreModel: Model<GenreDocument>,
     @Inject('NAME_MODEL') private readonly nameModel: Model<NameDocument>,
+    private readonly httpService: HttpService,
   ) {}
 
   private async newNames(names: { name: Name; attributes?: string[] }[]): Promise<
@@ -118,5 +121,134 @@ export class MoviesService {
 
   async deleteMovie(movieId): Promise<void> {
     await this.movieModel.deleteOne({ _id: movieId }).exec();
+  }
+
+  private formatMovieData = ({ baseInfo, principalCast, extendedCast, creatorsDirectorsWriters, titles }) => {
+    const regionalTitles = titles.map((title) => ({
+      title: title?.title,
+      region: title?.region,
+    }));
+
+    const picture = {
+      url: baseInfo.primaryImage?.url,
+      height: baseInfo.primaryImage?.height,
+      width: baseInfo.primaryImage?.width,
+    };
+
+    const releaseDate = {
+      year: baseInfo.releaseYear?.year || null,
+      month: baseInfo.releaseDate?.month,
+      day: baseInfo.releaseDate?.day,
+    };
+
+    const genres =
+      baseInfo.genres?.genres.map((genre) => ({
+        id: genre?.id,
+        text: genre?.text,
+      })) || [];
+
+    const directors =
+      creatorsDirectorsWriters.directors?.[0]?.credits.map((credit) => ({
+        name: { id: credit.name.id, text: credit.name.nameText.text },
+        attributes: credit?.attributes?.map((attr) => attr.text) || [],
+      })) || [];
+
+    const writers =
+      creatorsDirectorsWriters.writers?.[0]?.credits.map((credit) => ({
+        name: { id: credit.name.id, text: credit.name.nameText.text },
+        attributes: credit?.attributes?.map((attr) => attr.text) || [],
+      })) || [];
+
+    const castingPrincipal =
+      principalCast.principalCast?.[0]?.credits.map((cast) => ({
+        name: {
+          id: cast.name.id,
+          text: cast.name.nameText.text,
+          picture: {
+            url: cast.name?.primaryImage?.url,
+            height: cast.name?.primaryImage?.height,
+            width: cast.name?.primaryImage?.width,
+          },
+        },
+        characters: cast?.characters?.map((char) => char.name) || [],
+        attributes: cast?.attributes?.map((attr) => attr.text) || [],
+      })) || [];
+
+    const castingExtended = extendedCast.cast?.edges.map(({ node }) => ({
+      name: {
+        id: node.name.id,
+        text: node.name.nameText.text,
+        picture: {
+          url: node.name?.primaryImage?.url,
+          height: node.name?.primaryImage?.height,
+          width: node.name?.primaryImage?.width,
+        },
+      },
+      characters: node.characters?.map((char) => char.name) || [],
+      attributes: node?.attributes?.map((attr) => attr.text) || [],
+    }));
+
+    return {
+      imdbId: baseInfo.id,
+      originalTitle: baseInfo.originalTitleText.text,
+      regionalTitles,
+      picture,
+      releaseDate,
+      duration: baseInfo.runtime?.seconds,
+      plot: baseInfo.plot?.plotText?.plainText,
+      genres,
+      directors,
+      writers,
+      casting: {
+        principal: castingPrincipal,
+        extended: castingExtended,
+      },
+      seen: false,
+    };
+  };
+
+  async getMovieFromRapidApi(imdbId): Promise<MovieDto> {
+    const url = 'https://moviesdatabase.p.rapidapi.com';
+    const params = ['base_info', 'principalCast', 'extendedCast', 'creators_directors_writers'];
+
+    try {
+      const [baseInfo, principalCast, extendedCast, creatorsDirectorsWriters, titles] = await Promise.all([
+        ...params.map((param) =>
+          firstValueFrom(
+            this.httpService.get(`${url}/titles/${imdbId}`, {
+              headers: {
+                'X-RapidAPI-Host': 'moviesdatabase.p.rapidapi.com',
+                'X-RapidAPI-Key': process.env.RAPID_API_KEY,
+              },
+              params: {
+                limit: '1',
+                info: param,
+              },
+            }),
+          ),
+        ),
+        firstValueFrom(
+          this.httpService.get(`${url}/titles/${imdbId}/aka`, {
+            headers: {
+              'X-RapidAPI-Host': 'moviesdatabase.p.rapidapi.com',
+              'X-RapidAPI-Key': process.env.RAPID_API_KEY,
+            },
+            params: {
+              limit: '1',
+            },
+          }),
+        ),
+      ]);
+
+      return this.formatMovieData({
+        baseInfo: baseInfo.data.results,
+        principalCast: principalCast.data.results,
+        extendedCast: extendedCast.data.results,
+        creatorsDirectorsWriters: creatorsDirectorsWriters.data.results,
+        titles: titles.data.results,
+      });
+    } catch (error) {
+      throw new HttpException(`Failed to fetch movie with imdbId ${imdbId}`, error.response?.status || 500);
+    }
   }
 }
