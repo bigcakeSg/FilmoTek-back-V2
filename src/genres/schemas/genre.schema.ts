@@ -5,7 +5,7 @@ export type GenreDocument = HydratedDocument<Genre>;
 
 @Schema()
 export class Genre {
-  @Prop({ required: true })
+  @Prop({ required: true, unique: true })
   id: string;
 
   @Prop({ required: true })

@@ -1,5 +1,5 @@
-import { Controller, Get, Param, Patch } from '@nestjs/common';
-import { SupportsService } from './names.service';
+import { Controller, Get, HttpException, Param, Patch } from '@nestjs/common';
+import { SupportsService } from './supports.service';
 
 @Controller('supports')
 export class SupportsController {
@@ -12,11 +12,19 @@ export class SupportsController {
 
   @Patch(':support/add-movie/:movieId')
   async addMovieToSupportType(@Param() params: { support: string; movieId: string }): Promise<void> {
-    this.supportsService.addMovieToSupportType(params.support, params.movieId);
+    try {
+      this.supportsService.addMovieToSupportType(params.support, params.movieId);
+    } catch (error) {
+      throw new HttpException(error.message, 500);
+    }
   }
 
   @Patch(':support/delete-movie/:movieId')
   async deleteMovieFromSupportType(@Param() params: { support: string; movieId: string }): Promise<void> {
-    this.supportsService.deleteMovieFromSupportType(params.support, params.movieId);
+    try {
+      this.supportsService.deleteMovieFromSupportType(params.support, params.movieId);
+    } catch (error) {
+      throw new HttpException(error.message, 500);
+    }
   }
 }
