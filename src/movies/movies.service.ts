@@ -107,10 +107,10 @@ export class MoviesService {
     return this.movieModel
       .find()
       .select('imdbId originalTitle regionalTitles picture releaseDate directors seen')
+      .populate([{ path: 'directors.name', select: '-__v' }])
       .sort('originalTitle')
       .skip(start)
       .limit(limit)
-      .populate([{ path: 'directors.name', select: '-__v' }])
       .exec();
   }
 
@@ -261,5 +261,35 @@ export class MoviesService {
     } catch (error) {
       throw new HttpException(`Failed to update movie with id ${movieId}`, error.response?.status || 500);
     }
+  }
+
+  async getMoviesByGenre(genreId: string): Promise<MovieDocument[]> {
+    return this.movieModel
+      .find({ genres: genreId })
+      .select('imdbId originalTitle regionalTitles picture releaseDate')
+      .sort('originalTitle')
+      .exec();
+  }
+
+  async getMoviesByName(nameId: string): Promise<MovieDocument[]> {
+    return this.movieModel
+      .find({
+        $or: [
+          { 'directors.name': nameId },
+          { 'writers.name': nameId },
+          { 'casting.principal.name': nameId },
+          { 'casting.extended.name': nameId },
+        ],
+      })
+      .populate([
+        { path: 'genres', select: '-__v' },
+        { path: 'directors.name', select: '-__v' },
+        { path: 'writers.name', select: '-__v' },
+        { path: 'casting.principal.name', select: '-__v' },
+        { path: 'casting.extended.name', select: '-__v' },
+      ])
+      .sort('originalTitle')
+      .select('-__v')
+      .exec();
   }
 }

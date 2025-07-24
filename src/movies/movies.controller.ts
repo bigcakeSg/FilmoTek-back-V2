@@ -45,4 +45,14 @@ export class MoviesController {
   async updateMovie(@Param('movieId') movieId: string, @Body() updateMovieDto: MovieDto): Promise<MovieDocument> {
     return this.moviesService.updateMovie(movieId, updateMovieDto);
   }
+
+  @Get('genre/:genreId')
+  async getMoviesByGenre(@Param('genreId') genreId: string): Promise<MovieDocument[]> {
+    return this.moviesService.getMoviesByGenre(genreId);
+  }
+
+  @Get('name/:nameId')
+  async getMoviesByName(@Param('nameId') nameId: string): Promise<MovieDocument[]> {
+    return this.moviesService.getMoviesByName(nameId);
+  }
 }
