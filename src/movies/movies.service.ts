@@ -6,6 +6,7 @@ import { MovieDto, Name } from './dto/movie.dto';
 import { MovieDocument } from './schemas/movie.schema';
 import { GenreDocument } from 'src/genres/schemas/genre.schema';
 import { NameDocument } from 'src/names/schemas/name.schema';
+import { PicturesService } from 'src/pictures/pictures.service';
 
 @Injectable()
 export class MoviesService {
@@ -14,6 +15,7 @@ export class MoviesService {
     @Inject('GENRE_MODEL') private readonly genreModel: Model<GenreDocument>,
     @Inject('NAME_MODEL') private readonly nameModel: Model<NameDocument>,
     private readonly httpService: HttpService,
+    private readonly picturesService: PicturesService,
   ) {}
 
   private async newNames(names: { name: Name; attributes?: string[] }[]): Promise<
@@ -37,7 +39,16 @@ export class MoviesService {
 
         if (nameId) return { name: nameId._id, attributes };
         else {
-          const newName = new this.nameModel({ id: name.id, text: name.text, picture: name.picture });
+          const picture = name.picture
+            ? await this.picturesService.savePicture(
+                { url: name.picture.url, name: name.text, size: { w: 600 } },
+                'portrait',
+              )
+            : undefined;
+
+          const newName = new this.nameModel({ id: name.id, text: name.text, picture });
+          console.log(newName);
+
           await newName.save();
           return { name: newName._id, attributes };
         }
@@ -72,13 +83,20 @@ export class MoviesService {
         }
       }),
     );
+
     const directors = await this.newNames(movieData.directors);
     const writers = await this.newNames(movieData.writers);
     const principalCast = await this.newNames(movieData.casting.principal);
     const extendedCast = await this.newNames(movieData.casting.extended);
 
+    const picture = await this.picturesService.savePicture(
+      { ...movieData.picture, name: movieData.originalTitle, size: { w: 1200 } },
+      'poster',
+    );
+
     const createdMovie = new this.movieModel({
       ...movieData,
+      picture,
       genres,
       directors,
       writers,
@@ -202,17 +220,16 @@ export class MoviesService {
     };
   };
 
-  async getMovieFromRapidApi(imdbId): Promise<MovieDto> {
-    const url = 'https://moviesdatabase.p.rapidapi.com';
+  async getMovieFromRapidApi(imdbId: string): Promise<MovieDto> {
     const params = ['base_info', 'principalCast', 'extendedCast', 'creators_directors_writers'];
 
     try {
       const [baseInfo, principalCast, extendedCast, creatorsDirectorsWriters, titles] = await Promise.all([
         ...params.map((param) =>
           firstValueFrom(
-            this.httpService.get(`${url}/titles/${imdbId}`, {
+            this.httpService.get(`${process.env.RAPID_API_URL}/titles/${imdbId}`, {
               headers: {
-                'X-RapidAPI-Host': 'moviesdatabase.p.rapidapi.com',
+                'X-RapidAPI-Host': process.env.RAPID_API_HOST,
                 'X-RapidAPI-Key': process.env.RAPID_API_KEY,
               },
               params: {
@@ -223,9 +240,9 @@ export class MoviesService {
           ),
         ),
         firstValueFrom(
-          this.httpService.get(`${url}/titles/${imdbId}/aka`, {
+          this.httpService.get(`${process.env.RAPID_API_URL}/titles/${imdbId}/aka`, {
             headers: {
-              'X-RapidAPI-Host': 'moviesdatabase.p.rapidapi.com',
+              'X-RapidAPI-Host': process.env.RAPID_API_HOST,
               'X-RapidAPI-Key': process.env.RAPID_API_KEY,
             },
             params: {
