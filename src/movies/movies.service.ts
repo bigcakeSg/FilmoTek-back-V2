@@ -1,4 +1,4 @@
-import { HttpException, Inject, Injectable } from '@nestjs/common';
+import { ConflictException, HttpException, Inject, Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Model, Types } from 'mongoose';
@@ -64,7 +64,7 @@ export class MoviesService {
       .exec();
 
     if (isMovieExists) {
-      throw new HttpException(`Movie with imdbId ${movieData.imdbId} already exists.`, 409);
+      throw new ConflictException(`Movie with imdbId ${movieData.imdbId} already exists.`);
     }
 
     const genres = await Promise.all(
