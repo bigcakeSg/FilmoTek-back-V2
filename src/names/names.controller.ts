@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, HttpException } from '@nestjs/common';
+import { Controller, Get, Post, Body, HttpException, Param } from '@nestjs/common';
 import { NamesService } from './names.service';
 import { NameDocument } from './schemas/name.schema';
 
@@ -22,5 +22,10 @@ export class NamesController {
   @Get()
   async findAllNames(): Promise<NameDocument[]> {
     return this.namesService.findAllNames();
+  }
+
+  @Get('api-data/:imdbId')
+  async getNameFromApi(@Param('imdbId') imdbId: string): Promise<any> {
+    return this.namesService.getNameFromRapidApi(imdbId);
   }
 }
