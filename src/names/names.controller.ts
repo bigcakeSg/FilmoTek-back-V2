@@ -21,7 +21,7 @@ export class NamesController {
 
   @Get()
   async findAllNames(): Promise<NameDocument[]> {
-    return this.namesService.findAllNames();
+    return await this.namesService.findAllNames();
   }
 
   @Get('api-data/:imdbId')
