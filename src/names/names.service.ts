@@ -16,7 +16,7 @@ export class NamesService {
   }
 
   async findAllNames(): Promise<NameDocument[]> {
-    return this.nameModel.find().select('-__v').exec();
+    return await this.nameModel.find().select('-__v').exec();
   }
 
   async getNameFromRapidApi(imdbId: string): Promise<NameDocument> {

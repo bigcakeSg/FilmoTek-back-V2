@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, HttpException, Param } from '@nestjs/common';
+import { Controller, Get, Post, Body, HttpException, Param, ConflictException } from '@nestjs/common';
 import { NamesService } from './names.service';
 import { NameDocument } from './schemas/name.schema';
 
@@ -13,7 +13,7 @@ export class NamesController {
     } catch (error) {
       //MongoDB unicity error.code === 11000
       if (error.code === 11000) {
-        throw new HttpException('Name already exists', 409);
+        throw new ConflictException('Name already exists');
       }
       throw new HttpException(error.message, 500);
     }
@@ -21,7 +21,7 @@ export class NamesController {
 
   @Get()
   async findAllNames(): Promise<NameDocument[]> {
-    return this.namesService.findAllNames();
+    return await this.namesService.findAllNames();
   }
 
   @Get('api-data/:imdbId')

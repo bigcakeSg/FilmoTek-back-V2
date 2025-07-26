@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, HttpException } from '@nestjs/common';
+import { Controller, Get, Post, Body, HttpException, ConflictException } from '@nestjs/common';
 import { GenresService } from './genres.service';
 import { GenreDocument } from './schemas/genre.schema';
 
@@ -13,7 +13,7 @@ export class GenresController {
     } catch (error) {
       //MongoDB unicity error.code === 11000
       if (error.code === 11000) {
-        throw new HttpException('Genre already exists', 409);
+        throw new ConflictException('Genre already exists');
       }
       throw new HttpException(error.message, 500);
     }
