@@ -180,8 +180,10 @@ export class MoviesService {
 
     movies = movies.map((movie) => ({
       ...movie,
-      normOriginalTitle: normalizeTitle(movie.originalTitle),
-      normFrenchTitle: movie.frenchTitle ? normalizeTitle(movie.frenchTitle) : null,
+      normOriginalTitle: movie.originalTitle || '',
+      normFrenchTitle: movie.frenchTitle || '',
+      originalTitle: normalizeTitle(movie.originalTitle),
+      frenchTitle: movie.frenchTitle ? normalizeTitle(movie.frenchTitle) : null,
     }));
 
     if (sortby) {
@@ -210,6 +212,8 @@ export class MoviesService {
       limit,
       data: movies.map((movie) => ({
         ...movie,
+        originalTitle: movie.normOriginalTitle,
+        frenchTitle: movie.normFrenchTitle,
         normOriginalTitle: undefined,
         normFrenchTitle: undefined,
       })),

@@ -1,7 +1,7 @@
 export const normalizeTitle = (title) => {
   return title
-    .replace(/^(The |A |An |Le |La |L'|Les |Un |Une |D'|Des )/i, '')
     .toLowerCase()
+    .replace(/^(the |a |an |le |la |l'|les |un |une |d'|des )/i, '')
     .replace(/\s/g, '')
     .replace(/[àáâãäå]/g, 'a')
     .replace(/æ/g, 'ae')
