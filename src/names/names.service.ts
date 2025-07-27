@@ -1,9 +1,9 @@
-import { HttpException, Inject, Injectable } from '@nestjs/common';
+import { ConflictException, HttpException, Inject, Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Model } from 'mongoose';
 import { NameDocument } from './schemas/name.schema';
-import { NameInputDto } from './dto/name.dto';
+import { NameDto } from './dto/name.dto';
 import { PicturesService } from 'src/pictures/pictures.service';
 
 @Injectable()
@@ -14,13 +14,14 @@ export class NamesService {
     private readonly picturesService: PicturesService,
   ) {}
 
-  async createName(name: NameInputDto): Promise<string> {
+  async createName(name: NameDto, isCatchError?: boolean): Promise<string> {
     const nameId = await this.nameModel
       .findOne({
         id: name.id,
       })
       .exec();
 
+    if (nameId && isCatchError) throw new ConflictException(`"${name.text}" already exists`);
     if (nameId) return nameId.get('_id').toString();
     else {
       const picture = name.picture
@@ -41,7 +42,7 @@ export class NamesService {
     return await this.nameModel.find().select('-__v').exec();
   }
 
-  async getNameFromRapidApi(imdbId: string): Promise<NameDocument> {
+  async getNameFromRapidApi(imdbId: string): Promise<NameDto> {
     try {
       const response = await firstValueFrom(
         this.httpService.get(`${process.env.RAPID_API_URL}/actors/${imdbId}`, {
@@ -55,10 +56,10 @@ export class NamesService {
         }),
       );
 
-      return new this.nameModel({
+      return {
         id: response.data.results.nconst,
         text: response.data.results.primaryName,
-      });
+      };
     } catch (error) {
       throw new HttpException(`Failed to fetch name with imdbId ${imdbId}`, error.response?.status || 500);
     }

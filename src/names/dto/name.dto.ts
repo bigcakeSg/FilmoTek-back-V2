@@ -1,4 +1,4 @@
-export class NameInputDto {
+export class NameDto {
   id: string;
   text: string;
   picture?: {
