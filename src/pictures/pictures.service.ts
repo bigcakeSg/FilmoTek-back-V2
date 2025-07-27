@@ -9,7 +9,7 @@ export class PicturesService {
 
   async savePicture(picture: PictureDto, type: PictureType): Promise<string> {
     try {
-      const folder = `media/${type}s`;
+      const folder = `media/${type}s`.toLowerCase();
 
       if (!fs.existsSync(folder)) {
         fs.mkdirSync(folder, { recursive: true });

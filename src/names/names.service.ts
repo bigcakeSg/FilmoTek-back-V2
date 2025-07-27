@@ -2,7 +2,7 @@ import { ConflictException, HttpException, Inject, Injectable } from '@nestjs/co
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Model } from 'mongoose';
-import { NameDocument } from './schemas/name.schema';
+import { Name, NameDocument } from './schemas/name.schema';
 import { NameDto } from './dto/name.dto';
 import { PicturesService } from 'src/pictures/pictures.service';
 import { PictureType } from 'src/pictures/dto/picture.dto';
@@ -15,15 +15,16 @@ export class NamesService {
     private readonly picturesService: PicturesService,
   ) {}
 
-  async createName(name: NameDto, isCatchError?: boolean): Promise<string> {
+  async createName(name: NameDto, isCatchError?: boolean): Promise<Name> {
     const foundName = await this.nameModel
       .findOne({
         id: name.id,
       })
+      .select('-__v')
       .exec();
 
     if (foundName && isCatchError) throw new ConflictException(`"${name.text}" already exists`);
-    if (foundName) return foundName.get('_id').toString();
+    if (foundName) return foundName;
 
     const picture = name.picture
       ? await this.picturesService.savePicture(
@@ -32,9 +33,7 @@ export class NamesService {
         )
       : undefined;
 
-    const newName = new this.nameModel({ id: name.id, text: name.text, picture });
-
-    return newName.get('_id').toString();
+    return await new this.nameModel({ id: name.id, text: name.text, picture }).save();
   }
 
   async findAllNames(): Promise<NameDocument[]> {

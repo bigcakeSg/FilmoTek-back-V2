@@ -26,24 +26,24 @@ export interface MovieDto {
     text: string;
   }[];
   directors?: {
-    name: Name;
+    name: { id: string; text: string; picture: string };
     attributes?: string[];
   }[];
   writers?: {
-    name: Name;
+    name: { id: string; text: string; picture: string };
     attributes?: string[];
   }[];
   casting: {
     principal: {
-      name: Name;
+      name: { id: string; text: string; picture: string };
       characters: string[];
       attributes?: string[];
     }[];
     extended: {
-      name: Name;
+      name: { id: string; text: string; picture: string };
       characters: string[];
       attributes?: string[];
     }[];
   };
-  seen?: boolean;
+  watched?: boolean;
 }
