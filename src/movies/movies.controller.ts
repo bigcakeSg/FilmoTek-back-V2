@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { MoviesService } from './movies.service';
 import { MovieDocument } from './schemas/movie.schema';
-import { MovieDto, MoviesOutputDto } from './dto/movie.dto';
+import { filterDto, MovieDto, OutputDto } from './dto/movie.dto';
 
 @Controller('movies')
 export class MoviesController {
@@ -17,10 +17,21 @@ export class MoviesController {
     return this.moviesService.getOneMovie(params.movieId);
   }
 
-  @Get()
-  async getAllMoviesWithPagination(@Query() query: { start?: number; limit?: number }): Promise<MoviesOutputDto> {
-    const { start, limit } = query;
-    return this.moviesService.getAllMovies(start, limit);
+  @Post()
+  async getAllMoviesWithPagination(
+    @Body()
+    filter: filterDto[],
+
+    @Query()
+    query: {
+      start?: string;
+      limit?: string;
+      sortby?: string;
+      direction?: 'desc' | 'asc';
+    },
+  ): Promise<OutputDto> {
+    const { start, limit, sortby, direction } = query;
+    return this.moviesService.getAllMovies({ start: +start, limit: +limit, sortby, direction, filter });
   }
 
   @Delete('title/:movieId')

@@ -2,13 +2,14 @@ import { ConflictException, HttpException, Inject, Injectable, NotFoundException
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Model } from 'mongoose';
-import { MovieDto, MoviesOutputDto, NameDto } from './dto/movie.dto';
+import { filterDto, MovieDto, OutputDto, NameDto } from './dto/movie.dto';
 import { MovieDocument } from './schemas/movie.schema';
 import { GenreDocument } from 'src/genres/schemas/genre.schema';
 import { NameDocument } from 'src/names/schemas/name.schema';
 import { PicturesService } from 'src/pictures/pictures.service';
 import { NamesService } from 'src/names/names.service';
 import { PictureType } from 'src/pictures/dto/picture.dto';
+import { normalizeTitle } from 'src/utils/helpers';
 
 @Injectable()
 export class MoviesService {
@@ -29,7 +30,6 @@ export class MoviesService {
   > {
     return await Promise.all(
       names.map(async ({ name, attributes }) => {
-        console.log(name);
         const newName = await this.namesService.createName({
           ...name,
           picture: { url: name.picture, width: 600 },
@@ -112,17 +112,19 @@ export class MoviesService {
     return movie;
   }
 
-  async getAllMovies(start?: number, limit?: number): Promise<MoviesOutputDto> {
-    // const movies = await this.movieModel
-    //   .find()
-    //   .select('imdbId originalTitle regionalTitles picture releaseDate directors watched')
-    //   .populate([{ path: 'directors.name', select: '-__v' }])
-    //   .sort('originalTitle')
-    //   .skip(start)
-    //   .limit(limit)
-    //   .exec();
+  async getAllMovies(queries: {
+    start?: number;
+    limit?: number;
+    sortby?: string;
+    direction?: 'desc' | 'asc';
+    filter?: filterDto[];
+  }): Promise<OutputDto> {
+    const { start, limit, sortby, direction, filter } = queries;
+    const filters = Array.isArray(filter)
+      ? filter.map((elt) => ({ [elt.filter]: { $regex: elt.value, $options: 'i' } }))
+      : null;
 
-    const movies = await this.movieModel
+    let movies = await this.movieModel
       .aggregate([
         {
           $addFields: {
@@ -135,40 +137,69 @@ export class MoviesService {
             },
           },
         },
-        // Populate
-        {
-          $lookup: {
-            from: 'names',
-            localField: 'directors.name',
-            foreignField: '_id',
-            as: 'directorsPopulated',
-          },
-        },
-        // Replace populated field
         {
           $addFields: {
-            'directors.name': '$directorsPopulated',
+            frenchTitle: {
+              $let: {
+                vars: {
+                  frTitleObj: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: '$regionalTitles',
+                          as: 'title',
+                          cond: { $eq: ['$$title.region', 'FR'] },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                },
+                in: '$$frTitleObj.title',
+              },
+            },
           },
         },
         // Remove fields
         {
           $project: {
-            directorsPopulated: 0,
+            regionalTitles: 0,
+            directors: 0,
             plot: 0,
             genres: 0,
             writers: 0,
             casting: 0,
             __v: 0,
-            'directors.__v': 0,
-            'directors._id': 0,
-            'directors.name.__v': 0,
           },
         },
-        ...(start ? [{ $skip: +start }] : []),
-        ...(limit ? [{ $limit: +limit }] : []),
-        { $sort: { releaseDate: 1 } },
+        ...(start ? [{ $skip: start }] : []),
+        ...(limit ? [{ $limit: limit }] : []),
+        ...(filters ? [{ $match: { $or: filters } }] : []),
       ])
       .exec();
+
+    movies = movies.map((movie) => ({
+      ...movie,
+      normOriginalTitle: normalizeTitle(movie.originalTitle),
+      normFrenchTitle: movie.frenchTitle ? normalizeTitle(movie.frenchTitle) : null,
+    }));
+
+    if (sortby) {
+      movies = movies.sort((a, b) => {
+        const aValue = a[sortby];
+        const bValue = b[sortby];
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          if (direction === 'desc') {
+            return bValue.localeCompare(aValue);
+          }
+          return aValue.localeCompare(bValue);
+        }
+        if (direction === 'desc') {
+          return bValue - aValue;
+        }
+        return aValue - bValue;
+      });
+    }
 
     const totalCount = await this.movieModel.countDocuments().exec();
 
@@ -177,7 +208,11 @@ export class MoviesService {
       totalCount,
       start,
       limit,
-      data: movies,
+      data: movies.map((movie) => ({
+        ...movie,
+        normOriginalTitle: undefined,
+        normFrenchTitle: undefined,
+      })),
     };
   }
 
