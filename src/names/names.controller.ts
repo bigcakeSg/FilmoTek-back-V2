@@ -8,7 +8,7 @@ export class NamesController {
   constructor(private readonly namesService: NamesService) {}
 
   @Post()
-  async createName(@Body() createNameDto: NameDto) {
+  async createName(@Body() createNameDto: NameDto): Promise<string> {
     return await this.namesService.createName(createNameDto, true);
   }
 

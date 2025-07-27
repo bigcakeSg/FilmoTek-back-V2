@@ -1,13 +1,13 @@
 import * as fs from 'fs';
 import { Injectable } from '@nestjs/common';
 import { Jimp } from 'jimp';
-import { PictureInputDto } from './dto/picture.dto';
+import { PictureDto, PictureType } from './dto/picture.dto';
 
 @Injectable()
 export class PicturesService {
   constructor() {}
 
-  async savePicture(picture: PictureInputDto, type: 'poster' | 'portrait'): Promise<string> {
+  async savePicture(picture: PictureDto, type: PictureType): Promise<string> {
     try {
       const folder = `media/${type}s`;
 
@@ -16,8 +16,8 @@ export class PicturesService {
       }
 
       const image = await Jimp.read(picture.url);
-      const fileName: `${string}.${string}` = `${picture.name ? picture.name + '-' : ''}${Date.now()}.jpg`;
-      await image.resize({ w: picture.size?.w, h: picture.size?.h }).write(`${folder}/${fileName}`);
+      const fileName: `${string}.${string}` = `${type}s/${picture.name ? picture.name.replace(/\s+/g, '') + '-' : ''}${Date.now()}.jpg`;
+      await image.resize({ w: picture.size?.w, h: picture.size?.h }).write(`media/${fileName}`);
 
       return fileName;
     } catch (error) {

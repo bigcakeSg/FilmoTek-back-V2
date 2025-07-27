@@ -5,6 +5,7 @@ import { Model } from 'mongoose';
 import { NameDocument } from './schemas/name.schema';
 import { NameDto } from './dto/name.dto';
 import { PicturesService } from 'src/pictures/pictures.service';
+import { PictureType } from 'src/pictures/dto/picture.dto';
 
 @Injectable()
 export class NamesService {
@@ -15,27 +16,25 @@ export class NamesService {
   ) {}
 
   async createName(name: NameDto, isCatchError?: boolean): Promise<string> {
-    const nameId = await this.nameModel
+    const foundName = await this.nameModel
       .findOne({
         id: name.id,
       })
       .exec();
 
-    if (nameId && isCatchError) throw new ConflictException(`"${name.text}" already exists`);
-    if (nameId) return nameId.get('_id').toString();
-    else {
-      const picture = name.picture
-        ? await this.picturesService.savePicture(
-            { url: name.picture.url, name: name.text, size: { w: name.picture.width, h: name.picture.height } },
-            'portrait',
-          )
-        : undefined;
+    if (foundName && isCatchError) throw new ConflictException(`"${name.text}" already exists`);
+    if (foundName) return foundName.get('_id').toString();
 
-      const newName = new this.nameModel({ id: name.id, text: name.text, picture });
+    const picture = name.picture
+      ? await this.picturesService.savePicture(
+          { url: name.picture.url, name: name.text, size: { w: name.picture.width, h: name.picture.height } },
+          PictureType.PORTRAIT,
+        )
+      : undefined;
 
-      await newName.save();
-      return newName.get('_id').toString();
-    }
+    const newName = new this.nameModel({ id: name.id, text: name.text, picture });
+
+    return newName.get('_id').toString();
   }
 
   async findAllNames(): Promise<NameDocument[]> {

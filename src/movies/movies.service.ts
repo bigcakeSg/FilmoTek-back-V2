@@ -8,6 +8,7 @@ import { GenreDocument } from 'src/genres/schemas/genre.schema';
 import { NameDocument } from 'src/names/schemas/name.schema';
 import { PicturesService } from 'src/pictures/pictures.service';
 import { NamesService } from 'src/names/names.service';
+import { PictureType } from 'src/pictures/dto/picture.dto';
 
 @Injectable()
 export class MoviesService {
@@ -47,7 +48,7 @@ export class MoviesService {
           const picture = name.picture
             ? await this.picturesService.savePicture(
                 { url: name.picture, name: name.text, size: { w: 600 } },
-                'portrait',
+                PictureType.PORTRAIT,
               )
             : undefined;
 
@@ -95,7 +96,7 @@ export class MoviesService {
 
     const picture = await this.picturesService.savePicture(
       { url: movieData.picture, name: movieData.originalTitle, size: { w: 1200 } },
-      'poster',
+      PictureType.POSTER,
     );
 
     const createdMovie = new this.movieModel({
