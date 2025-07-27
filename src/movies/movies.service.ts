@@ -2,7 +2,7 @@ import { ConflictException, HttpException, Inject, Injectable, NotFoundException
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Model } from 'mongoose';
-import { MovieDto, Name } from './dto/movie.dto';
+import { MovieDto, MoviesOutputDto, NameDto } from './dto/movie.dto';
 import { MovieDocument } from './schemas/movie.schema';
 import { GenreDocument } from 'src/genres/schemas/genre.schema';
 import { NameDocument } from 'src/names/schemas/name.schema';
@@ -21,11 +21,9 @@ export class MoviesService {
     private readonly namesService: NamesService,
   ) {}
 
-  private async newNames(
-    names: { name: { id: string; text: string; picture: string }; attributes?: string[] }[],
-  ): Promise<
+  private async newNames(names: { name: NameDto; attributes?: string[] }[]): Promise<
     {
-      name: Name;
+      name: NameDto;
       attributes: string[];
     }[]
   > {
@@ -96,7 +94,7 @@ export class MoviesService {
     return createdMovie.get('_id').toString();
   }
 
-  async findOneMovie(movieId: string): Promise<MovieDocument> {
+  async getOneMovie(movieId: string): Promise<MovieDocument> {
     const movie = await this.movieModel
       .findById(movieId)
       .populate([
@@ -114,15 +112,73 @@ export class MoviesService {
     return movie;
   }
 
-  async findAllMovies(start?: number, limit?: number): Promise<MovieDocument[]> {
-    return this.movieModel
-      .find()
-      .select('imdbId originalTitle regionalTitles picture releaseDate directors watched')
-      .populate([{ path: 'directors.name', select: '-__v' }])
-      .sort('originalTitle')
-      .skip(start)
-      .limit(limit)
+  async getAllMovies(start?: number, limit?: number): Promise<MoviesOutputDto> {
+    // const movies = await this.movieModel
+    //   .find()
+    //   .select('imdbId originalTitle regionalTitles picture releaseDate directors watched')
+    //   .populate([{ path: 'directors.name', select: '-__v' }])
+    //   .sort('originalTitle')
+    //   .skip(start)
+    //   .limit(limit)
+    //   .exec();
+
+    const movies = await this.movieModel
+      .aggregate([
+        {
+          $addFields: {
+            releaseDate: {
+              $dateFromParts: {
+                year: '$releaseDate.year',
+                month: '$releaseDate.month',
+                day: '$releaseDate.day',
+              },
+            },
+          },
+        },
+        // Populate
+        {
+          $lookup: {
+            from: 'names',
+            localField: 'directors.name',
+            foreignField: '_id',
+            as: 'directorsPopulated',
+          },
+        },
+        // Replace populated field
+        {
+          $addFields: {
+            'directors.name': '$directorsPopulated',
+          },
+        },
+        // Remove fields
+        {
+          $project: {
+            directorsPopulated: 0,
+            plot: 0,
+            genres: 0,
+            writers: 0,
+            casting: 0,
+            __v: 0,
+            'directors.__v': 0,
+            'directors._id': 0,
+            'directors.name.__v': 0,
+          },
+        },
+        ...(start ? [{ $skip: +start }] : []),
+        ...(limit ? [{ $limit: +limit }] : []),
+        { $sort: { releaseDate: 1 } },
+      ])
       .exec();
+
+    const totalCount = await this.movieModel.countDocuments().exec();
+
+    return {
+      count: movies.length,
+      totalCount,
+      start,
+      limit,
+      data: movies,
+    };
   }
 
   async deleteMovie(movieId: string): Promise<void> {
