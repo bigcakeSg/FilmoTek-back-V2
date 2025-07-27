@@ -1,13 +1,14 @@
 import { Controller, Get, Post, Body, HttpException, Param, ConflictException } from '@nestjs/common';
 import { NamesService } from './names.service';
 import { NameDocument } from './schemas/name.schema';
+import { NameInputDto } from './dto/name.dto';
 
 @Controller('names')
 export class NamesController {
   constructor(private readonly namesService: NamesService) {}
 
   @Post()
-  async createName(@Body() createNameDto: NameDocument) {
+  async createName(@Body() createNameDto: NameInputDto) {
     try {
       return await this.namesService.createName(createNameDto);
     } catch (error) {

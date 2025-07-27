@@ -1,13 +1,7 @@
-export interface Picture {
-  url: string;
-  height?: number;
-  width?: number;
-}
-
 export interface Name {
   id: string;
   text: string;
-  picture?: Picture;
+  picture?: string;
 }
 
 export interface MovieDto {
@@ -19,11 +13,7 @@ export interface MovieDto {
       region: string;
     },
   ];
-  picture: {
-    url: string;
-    height: number;
-    width: number;
-  };
+  picture: string;
   releaseDate: {
     year: number;
     month: number;

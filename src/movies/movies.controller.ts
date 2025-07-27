@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpException, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { MoviesService } from './movies.service';
 import { MovieDocument } from './schemas/movie.schema';
 import { MovieDto } from './dto/movie.dto';
@@ -8,12 +8,8 @@ export class MoviesController {
   constructor(private readonly moviesService: MoviesService) {}
 
   @Post('title')
-  async createMovie(@Body() createMovieDto: MovieDto): Promise<MovieDocument> {
-    try {
-      return await this.moviesService.createMovie(createMovieDto);
-    } catch (error) {
-      throw new HttpException(error.message, error.status || 500);
-    }
+  async createMovie(@Body() createMovieDto: MovieDto): Promise<string> {
+    return this.moviesService.createMovie(createMovieDto);
   }
 
   @Get('title/:movieId')
@@ -29,11 +25,7 @@ export class MoviesController {
 
   @Delete('title/:movieId')
   async deleteMovie(@Param() params: { movieId: string }): Promise<void> {
-    try {
-      return this.moviesService.deleteMovie(params.movieId);
-    } catch (error) {
-      throw new HttpException(error.message, 500);
-    }
+    return this.moviesService.deleteMovie(params.movieId);
   }
 
   @Get('api-data/title/:imdbId')

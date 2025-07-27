@@ -7,6 +7,7 @@ import { MovieDocument } from './schemas/movie.schema';
 import { GenreDocument } from 'src/genres/schemas/genre.schema';
 import { NameDocument } from 'src/names/schemas/name.schema';
 import { PicturesService } from 'src/pictures/pictures.service';
+import { NamesService } from 'src/names/names.service';
 
 @Injectable()
 export class MoviesService {
@@ -16,6 +17,7 @@ export class MoviesService {
     @Inject('NAME_MODEL') private readonly nameModel: Model<NameDocument>,
     private readonly httpService: HttpService,
     private readonly picturesService: PicturesService,
+    private readonly namesService: NamesService,
   ) {}
 
   private async newNames(names: { name: Name; attributes?: string[] }[]): Promise<
@@ -31,6 +33,9 @@ export class MoviesService {
   > {
     return await Promise.all(
       names.map(async ({ name, attributes }) => {
+        // TODO: utiliser this.namesService.createName
+        // const newNameId = await this.namesService.createName(name);
+        // return { name: newNameId, attributes };
         const nameId = await this.nameModel
           .exists({
             id: name.id,
@@ -41,13 +46,12 @@ export class MoviesService {
         else {
           const picture = name.picture
             ? await this.picturesService.savePicture(
-                { url: name.picture.url, name: name.text, size: { w: 600 } },
+                { url: name.picture, name: name.text, size: { w: 600 } },
                 'portrait',
               )
             : undefined;
 
           const newName = new this.nameModel({ id: name.id, text: name.text, picture });
-          console.log(newName);
 
           await newName.save();
           return { name: newName._id, attributes };
@@ -56,7 +60,7 @@ export class MoviesService {
     );
   }
 
-  async createMovie(movieData: MovieDto): Promise<MovieDocument> {
+  async createMovie(movieData: MovieDto): Promise<string> {
     const isMovieExists = await this.movieModel
       .exists({
         imdbId: movieData.imdbId,
@@ -90,7 +94,7 @@ export class MoviesService {
     const extendedCast = await this.newNames(movieData.casting.extended);
 
     const picture = await this.picturesService.savePicture(
-      { ...movieData.picture, name: movieData.originalTitle, size: { w: 1200 } },
+      { url: movieData.picture, name: movieData.originalTitle, size: { w: 1200 } },
       'poster',
     );
 
@@ -101,10 +105,12 @@ export class MoviesService {
       directors,
       writers,
       casting: { principal: principalCast, extended: extendedCast },
-      seen: false,
+      watched: false,
     });
 
-    return createdMovie.save();
+    await createdMovie.save();
+
+    return createdMovie.get('_id').toString();
   }
 
   async findOneMovie(movieId: string): Promise<MovieDocument | null> {
@@ -124,7 +130,7 @@ export class MoviesService {
   async findAllMovies(start?: number, limit?: number): Promise<MovieDocument[]> {
     return this.movieModel
       .find()
-      .select('imdbId originalTitle regionalTitles picture releaseDate directors seen')
+      .select('imdbId originalTitle regionalTitles picture releaseDate directors watched')
       .populate([{ path: 'directors.name', select: '-__v' }])
       .sort('originalTitle')
       .skip(start)
@@ -142,11 +148,7 @@ export class MoviesService {
       region: title?.region,
     }));
 
-    const picture = {
-      url: baseInfo.primaryImage?.url,
-      height: baseInfo.primaryImage?.height,
-      width: baseInfo.primaryImage?.width,
-    };
+    const picture = baseInfo.primaryImage?.url;
 
     const releaseDate = {
       year: baseInfo.releaseYear?.year || null,
@@ -216,7 +218,7 @@ export class MoviesService {
         principal: castingPrincipal,
         extended: castingExtended,
       },
-      seen: false,
+      watched: false,
     };
   };
 
@@ -273,7 +275,7 @@ export class MoviesService {
 
       return await this.movieModel
         .findByIdAndUpdate(movieId, updateMovieDto, { new: true })
-        .select('imdbId originalTitle regionalTitles picture releaseDate directors seen')
+        .select('imdbId originalTitle regionalTitles picture releaseDate directors watched')
         .populate([{ path: 'directors.name', select: '-__v' }]);
     } catch (error) {
       throw new HttpException(`Failed to update movie with id ${movieId}`, error.response?.status || 500);

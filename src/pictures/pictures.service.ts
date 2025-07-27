@@ -1,15 +1,13 @@
 import * as fs from 'fs';
-import { Inject, Injectable } from '@nestjs/common';
-import { Model } from 'mongoose';
-import { PictureDocument } from './schemas/picture.schema';
+import { Injectable } from '@nestjs/common';
 import { Jimp } from 'jimp';
-import { PictureInputDto, PictureOutputDto } from './dto/picture.dto';
+import { PictureInputDto } from './dto/picture.dto';
 
 @Injectable()
 export class PicturesService {
-  constructor(@Inject('PICTURE_MODEL') private readonly pictureModel: Model<PictureDocument>) {}
+  constructor() {}
 
-  async savePicture(picture: PictureInputDto, type: 'poster' | 'portrait'): Promise<PictureOutputDto> {
+  async savePicture(picture: PictureInputDto, type: 'poster' | 'portrait'): Promise<string> {
     try {
       const folder = `media/${type}s`;
 
@@ -21,11 +19,7 @@ export class PicturesService {
       const fileName: `${string}.${string}` = `${picture.name ? picture.name + '-' : ''}${Date.now()}.jpg`;
       await image.resize({ w: picture.size?.w, h: picture.size?.h }).write(`${folder}/${fileName}`);
 
-      return {
-        url: fileName,
-        width: picture.size?.w,
-        height: picture.size?.h,
-      };
+      return fileName;
     } catch (error) {
       console.log(error.message);
       return;
