@@ -40,6 +40,9 @@ export class Movie {
   @Prop({ type: CastingSchema, default: { principal: [], extended: [] } })
   casting: Casting;
 
+  @Prop({ default: [] })
+  supports: string[];
+
   @Prop({ default: true })
   watched: boolean;
 }

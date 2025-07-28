@@ -45,6 +45,7 @@ export interface MovieDto {
       attributes?: string[];
     }[];
   };
+  supports: string[];
   watched?: boolean;
 }
 
@@ -60,10 +61,7 @@ export interface MovieOutputDto {
     id: string;
     text: string;
   }[];
-  directors?: {
-    name: NameDto;
-    attributes?: string[];
-  }[];
+  supports: string[];
   watched?: boolean;
 }
 

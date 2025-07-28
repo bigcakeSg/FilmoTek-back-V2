@@ -39,6 +39,65 @@ export class MoviesService {
     );
   }
 
+  private formatMovieData = ({ baseInfo, principalCast, extendedCast, creatorsDirectorsWriters, titles }): MovieDto => {
+    const regionalTitles = titles.map((title) => ({
+      title: title?.title,
+      region: title?.region,
+    }));
+
+    const picture = baseInfo.primaryImage?.url;
+
+    const releaseDate = {
+      year: baseInfo.releaseYear?.year || null,
+      month: baseInfo.releaseDate?.month,
+      day: baseInfo.releaseDate?.day,
+    };
+
+    const genres =
+      baseInfo.genres?.genres.map((genre) => ({
+        id: genre?.id,
+        text: genre?.text,
+      })) || [];
+
+    const formatName = (names) => {
+      return (
+        names.map((name) => ({
+          name: {
+            id: name.name.id,
+            text: name.name.nameText.text,
+            picture: name.name?.primaryImage?.url,
+          },
+          characters: name.characters?.map((char) => char.name) || [],
+          attributes: name.attributes?.map((attr) => attr.text) || [],
+        })) || []
+      );
+    };
+
+    const directors = formatName(creatorsDirectorsWriters.directors?.[0]?.credits);
+    const writers = formatName(creatorsDirectorsWriters.writers?.[0]?.credits);
+    const castingPrincipal = formatName(principalCast.principalCast?.[0]?.credits);
+    const castingExtended = formatName(extendedCast.cast?.edges.map(({ node }) => node));
+
+    return {
+      imdbId: baseInfo.id,
+      originalTitle: baseInfo.originalTitleText.text,
+      regionalTitles,
+      picture,
+      releaseDate,
+      duration: baseInfo.runtime?.seconds,
+      plot: baseInfo.plot?.plotText?.plainText,
+      genres,
+      directors,
+      writers,
+      casting: {
+        principal: castingPrincipal,
+        extended: castingExtended,
+      },
+      supports: baseInfo.supports,
+      watched: false,
+    };
+  };
+
   async createMovie(movieData: MovieDto): Promise<string> {
     const isMovieExists = await this.movieModel
       .findOne({
@@ -231,64 +290,6 @@ export class MoviesService {
 
     await this.movieModel.deleteOne({ _id: movieId }).exec();
   }
-
-  private formatMovieData = ({ baseInfo, principalCast, extendedCast, creatorsDirectorsWriters, titles }): MovieDto => {
-    const regionalTitles = titles.map((title) => ({
-      title: title?.title,
-      region: title?.region,
-    }));
-
-    const picture = baseInfo.primaryImage?.url;
-
-    const releaseDate = {
-      year: baseInfo.releaseYear?.year || null,
-      month: baseInfo.releaseDate?.month,
-      day: baseInfo.releaseDate?.day,
-    };
-
-    const genres =
-      baseInfo.genres?.genres.map((genre) => ({
-        id: genre?.id,
-        text: genre?.text,
-      })) || [];
-
-    const formatName = (names) => {
-      return (
-        names.map((name) => ({
-          name: {
-            id: name.name.id,
-            text: name.name.nameText.text,
-            picture: name.name?.primaryImage?.url,
-          },
-          characters: name.characters?.map((char) => char.name) || [],
-          attributes: name.attributes?.map((attr) => attr.text) || [],
-        })) || []
-      );
-    };
-
-    const directors = formatName(creatorsDirectorsWriters.directors?.[0]?.credits);
-    const writers = formatName(creatorsDirectorsWriters.writers?.[0]?.credits);
-    const castingPrincipal = formatName(principalCast.principalCast?.[0]?.credits);
-    const castingExtended = formatName(extendedCast.cast?.edges.map(({ node }) => node));
-
-    return {
-      imdbId: baseInfo.id,
-      originalTitle: baseInfo.originalTitleText.text,
-      regionalTitles,
-      picture,
-      releaseDate,
-      duration: baseInfo.runtime?.seconds,
-      plot: baseInfo.plot?.plotText?.plainText,
-      genres,
-      directors,
-      writers,
-      casting: {
-        principal: castingPrincipal,
-        extended: castingExtended,
-      },
-      watched: false,
-    };
-  };
 
   async getMovieFromRapidApi(imdbId: string): Promise<MovieDto> {
     const params = ['base_info', 'principalCast', 'extendedCast', 'creators_directors_writers'];
