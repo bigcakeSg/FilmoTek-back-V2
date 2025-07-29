@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument } from 'mongoose';
-import { Picture, PictureSchema } from 'src/pictures/schemas/picture.schema';
 
 export type NameDocument = HydratedDocument<Name>;
 
@@ -12,8 +11,8 @@ export class Name {
   @Prop({ required: true })
   text: string;
 
-  @Prop({ type: PictureSchema, required: false })
-  picture: Picture;
+  @Prop({ required: false })
+  picture: string;
 }
 
 export const NameSchema = SchemaFactory.createForClass(Name);

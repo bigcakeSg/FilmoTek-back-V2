@@ -1,22 +1,15 @@
-import { Controller, Get, Post, Body, HttpException, Param, ConflictException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { NamesService } from './names.service';
-import { NameDocument } from './schemas/name.schema';
+import { Name, NameDocument } from './schemas/name.schema';
+import { NameDto } from './dto/name.dto';
 
 @Controller('names')
 export class NamesController {
   constructor(private readonly namesService: NamesService) {}
 
   @Post()
-  async createName(@Body() createNameDto: NameDocument) {
-    try {
-      return await this.namesService.createName(createNameDto);
-    } catch (error) {
-      //MongoDB unicity error.code === 11000
-      if (error.code === 11000) {
-        throw new ConflictException('Name already exists');
-      }
-      throw new HttpException(error.message, 500);
-    }
+  async createName(@Body() createNameDto: NameDto): Promise<Name> {
+    return await this.namesService.createName(createNameDto, false);
   }
 
   @Get()
@@ -25,7 +18,7 @@ export class NamesController {
   }
 
   @Get('api-data/:imdbId')
-  async getNameFromApi(@Param('imdbId') imdbId: string): Promise<any> {
+  async getNameFromApi(@Param('imdbId') imdbId: string): Promise<NameDto> {
     return this.namesService.getNameFromRapidApi(imdbId);
   }
 }

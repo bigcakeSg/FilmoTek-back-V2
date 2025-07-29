@@ -7,18 +7,11 @@ import { DatabaseModule } from '../database/database.module';
 import { GenresProviders } from 'src/genres/genres.providers';
 import { NamesProviders } from 'src/names/names.providers';
 import { PicturesService } from 'src/pictures/pictures.service';
-import { PicturesProviders } from 'src/pictures/pictures.providers';
+import { NamesService } from 'src/names/names.service';
 
 @Module({
   imports: [DatabaseModule, HttpModule],
   controllers: [MoviesController],
-  providers: [
-    MoviesService,
-    PicturesService,
-    ...MoviesProviders,
-    ...GenresProviders,
-    ...NamesProviders,
-    ...PicturesProviders,
-  ],
+  providers: [MoviesService, PicturesService, NamesService, ...MoviesProviders, ...GenresProviders, ...NamesProviders],
 })
 export class MoviesModule {}

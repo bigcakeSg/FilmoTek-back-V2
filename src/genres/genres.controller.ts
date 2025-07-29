@@ -1,26 +1,18 @@
-import { Controller, Get, Post, Body, HttpException, ConflictException } from '@nestjs/common';
+import { Controller, Get, Post, Body } from '@nestjs/common';
 import { GenresService } from './genres.service';
-import { GenreDocument } from './schemas/genre.schema';
+import { GenreDto } from './dto/genre.dto';
 
 @Controller('genres')
 export class GenresController {
   constructor(private readonly genresService: GenresService) {}
 
   @Post()
-  async createGenre(@Body() createGenreDto: GenreDocument) {
-    try {
-      return await this.genresService.createGenre(createGenreDto);
-    } catch (error) {
-      //MongoDB unicity error.code === 11000
-      if (error.code === 11000) {
-        throw new ConflictException('Genre already exists');
-      }
-      throw new HttpException(error.message, 500);
-    }
+  async createGenre(@Body() createGenreDto: GenreDto) {
+    return await this.genresService.createGenre(createGenreDto);
   }
 
   @Get()
-  async findAllGenres(): Promise<GenreDocument[]> {
-    return this.genresService.findAllGenres();
+  async findAllGenres(): Promise<GenreDto[]> {
+    return await this.genresService.findAllGenres();
   }
 }

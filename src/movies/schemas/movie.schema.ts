@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
-import { Picture, PictureSchema } from '../../pictures/schemas/picture.schema';
 import { Casting, CastingSchema, TeamMember, TeamMemberSchema } from './teamMember.schema';
 import { ReleaseDate, ReleaseDateSchema } from './releaseDate.schema';
 
@@ -17,8 +16,8 @@ export class Movie {
   @Prop({ type: Array, default: [] })
   regionalTitles: { title: string; region: string }[];
 
-  @Prop({ type: PictureSchema, required: false })
-  picture: Picture;
+  @Prop({ required: false })
+  picture: string;
 
   @Prop({ type: ReleaseDateSchema, required: true })
   releaseDate: ReleaseDate;
@@ -41,8 +40,11 @@ export class Movie {
   @Prop({ type: CastingSchema, default: { principal: [], extended: [] } })
   casting: Casting;
 
+  @Prop({ default: [] })
+  supports: string[];
+
   @Prop({ default: true })
-  seen: boolean;
+  watched: boolean;
 }
 
 export const MovieSchema = SchemaFactory.createForClass(Movie);

@@ -1,13 +1,7 @@
-export interface Picture {
-  url: string;
-  height?: number;
-  width?: number;
-}
-
-export interface Name {
+export interface NameDto {
   id: string;
   text: string;
-  picture?: Picture;
+  picture?: string;
 }
 
 export interface MovieDto {
@@ -19,11 +13,7 @@ export interface MovieDto {
       region: string;
     },
   ];
-  picture: {
-    url: string;
-    height: number;
-    width: number;
-  };
+  picture: string;
   releaseDate: {
     year: number;
     month: number;
@@ -36,24 +26,54 @@ export interface MovieDto {
     text: string;
   }[];
   directors?: {
-    name: Name;
+    name: NameDto;
     attributes?: string[];
   }[];
   writers?: {
-    name: Name;
+    name: NameDto;
     attributes?: string[];
   }[];
   casting: {
     principal: {
-      name: Name;
+      name: NameDto;
       characters: string[];
       attributes?: string[];
     }[];
     extended: {
-      name: Name;
+      name: NameDto;
       characters: string[];
       attributes?: string[];
     }[];
   };
-  seen?: boolean;
+  supports: string[];
+  watched?: boolean;
+}
+
+export interface MovieOutputDto {
+  _id: string;
+  imdbId: string;
+  originalTitle: string;
+  frenchTitle?: string;
+  picture: string;
+  releaseDate: string;
+  duration: number;
+  genres: {
+    id: string;
+    text: string;
+  }[];
+  supports: string[];
+  watched?: boolean;
+}
+
+export interface OutputDto {
+  count: number;
+  totalCount: number;
+  start?: number;
+  limit?: number;
+  data: MovieOutputDto[];
+}
+
+export interface filterDto {
+  filter: string;
+  value: string;
 }

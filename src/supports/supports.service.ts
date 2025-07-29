@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { SupportDocument } from './schemas/support.schema';
 
@@ -16,6 +16,8 @@ export class SupportsService {
   }
 
   async deleteMovieFromSupportType(support: string, movieId: string): Promise<void> {
+    const movies = await this.findMoviesBySupportType(support);
+    if (!movies.includes(movieId)) throw new NotFoundException(`Movie "${movieId}" not included in ${support}`);
     await this.supportModel.updateOne({ type: support }, { $pull: { movies: movieId } }).exec();
   }
 }
