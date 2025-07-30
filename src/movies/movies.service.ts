@@ -10,7 +10,7 @@ import { PicturesService } from 'src/pictures/pictures.service';
 import { NamesService } from 'src/names/names.service';
 import { PictureType } from 'src/pictures/dto/picture.dto';
 import { normalizeTitle } from 'src/utils/helpers';
-
+import * as fs from 'fs';
 @Injectable()
 export class MoviesService {
   constructor(
@@ -134,7 +134,7 @@ export class MoviesService {
     const extendedCast = await this.newNames(movieData.casting.extended);
 
     const picture = await this.picturesService.savePicture(
-      { url: movieData.picture, name: movieData.originalTitle, size: { w: 1200 } },
+      { url: movieData.picture, name: movieData.imdbId, size: { h: 1200 } },
       PictureType.POSTER,
     );
 
@@ -349,16 +349,24 @@ export class MoviesService {
       .exec();
   }
 
-  async getMoviesByGenre(genreId: string): Promise<MovieDocument[]> {
-    return await this.movieModel
+  async getMoviesByGenre(genreId: string): Promise<OutputDto> {
+    const movies = await this.movieModel
       .find({ genres: genreId })
       .select('imdbId originalTitle regionalTitles picture releaseDate')
       .sort('originalTitle')
       .exec();
+
+    const totalCount = await this.movieModel.countDocuments().exec();
+
+    return {
+      count: movies.length,
+      totalCount,
+      data: movies,
+    };
   }
 
-  async getMoviesByName(nameId: string): Promise<MovieDocument[]> {
-    return await this.movieModel
+  async getMoviesByName(nameId: string): Promise<OutputDto> {
+    const movies = await this.movieModel
       .find({
         $or: [
           { 'directors.name': nameId },
@@ -372,5 +380,143 @@ export class MoviesService {
       .sort('originalTitle')
       .select('-__v')
       .exec();
+
+    const totalCount = await this.movieModel.countDocuments().exec();
+
+    return {
+      count: movies.length,
+      totalCount,
+      data: movies,
+    };
+  }
+
+  async exportMovies(start: number, limit?: number): Promise<unknown> {
+    const moviesFilePath = 'backup/FilmoTEKdb.movies.json';
+    const genresFilePath = 'backup/FilmoTEKdb.genres.json';
+    const namesFilePath = 'backup/FilmoTEKdb.names.json';
+    const supportsFilePath = 'backup/FilmoTEKdb.supports.json';
+
+    if (
+      !fs.existsSync(moviesFilePath) ||
+      !fs.existsSync(genresFilePath) ||
+      !fs.existsSync(namesFilePath) ||
+      !fs.existsSync(supportsFilePath)
+    ) {
+      throw new NotFoundException('Exported file not found');
+    }
+
+    const movies = fs.readFileSync(moviesFilePath, 'utf-8');
+    const importMovies = JSON.parse(movies) as any[];
+
+    const genres = fs.readFileSync(genresFilePath, 'utf-8');
+    const importGenres = JSON.parse(genres) as any[];
+
+    const names = fs.readFileSync(namesFilePath, 'utf-8');
+    const importNames = JSON.parse(names) as any[];
+
+    const supports = fs.readFileSync(supportsFilePath, 'utf-8');
+    const importSupports = JSON.parse(supports) as any[];
+
+    const newMovies = importMovies.slice(start, limit).map((movie) => {
+      const newSupports = [];
+      importSupports.forEach((s) => {
+        if (s.movies.includes(movie._id.$oid)) newSupports.push(s.type);
+      });
+
+      return {
+        imdbId: movie.imdbId,
+        originalTitle: movie.originalTitle,
+        regionalTitles: movie.regionalTitles.map((title) => ({
+          title: title.title,
+          region: title.region,
+        })),
+        picture: movie.picture.url,
+        releaseDate: {
+          year: movie.releaseDate.year,
+          month: movie.releaseDate.month,
+          day: movie.releaseDate.day,
+        },
+        duration: movie.duration,
+        plot: movie.plot,
+        genres: movie.genres.map((genre) => {
+          const genreData = importGenres.find((g) => g._id.$oid === genre.$oid);
+          return { id: genreData.id, text: genreData.text };
+        }),
+        directors: movie.directors.map((director) => {
+          const nameData = importNames.find((n) => n._id.$oid === director.name.$oid);
+          return {
+            name: {
+              id: nameData.id,
+              text: nameData.text,
+              picture: nameData.picture?.url,
+            },
+            attributes: director.attributes || [],
+          };
+        }),
+        writers: movie.writers.map((writer) => {
+          const nameData = importNames.find((n) => n._id.$oid === writer.name.$oid);
+          return {
+            name: {
+              id: nameData.id,
+              text: nameData.text,
+              picture: nameData.picture?.url,
+            },
+            attributes: writer.attributes || [],
+          };
+        }),
+        casting: {
+          principal: movie.casting.principal.map((cast) => {
+            const nameData = importNames.find((n) => n._id.$oid === cast.name.$oid);
+            return {
+              name: {
+                id: nameData.id,
+                text: nameData.text,
+                picture: nameData.picture?.url,
+              },
+              characters: cast.characters || [],
+              attributes: cast.attributes || [],
+            };
+          }),
+          extended: movie.casting.extended.map((cast) => {
+            const nameData = importNames.find((n) => n._id.$oid === cast.name.$oid);
+            return {
+              name: {
+                id: nameData.id,
+                text: nameData.text,
+                picture: nameData.picture?.url,
+              },
+              characters: cast.characters || [],
+              attributes: cast.attributes || [],
+            };
+          }),
+        },
+        supports: newSupports,
+        watched: movie.seen,
+      };
+    });
+
+    fs.writeFileSync('backup/exportedMovies.json', JSON.stringify(newMovies, null, 2));
+
+    return newMovies;
+  }
+
+  async importMovies(start: number, limit?: number): Promise<void> {
+    const filePath = 'backup/exportedMovies.json';
+
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException('Exported movies file not found');
+    }
+    const fileContent = fs.readFileSync(filePath, 'utf-8');
+    const moviesData = JSON.parse(fileContent).slice(start, limit) as any[];
+
+    for (const movieData of moviesData) {
+      try {
+        await this.createMovie(movieData);
+      } catch (error) {
+        console.error(`Error importing movie with imdbId ${movieData.imdbId}:`, error.message);
+      }
+    }
+
+    return;
   }
 }

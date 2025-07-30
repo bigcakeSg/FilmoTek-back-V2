@@ -1,3 +1,5 @@
+import { MovieDocument } from '../schemas/movie.schema';
+
 export interface NameDto {
   id: string;
   text: string;
@@ -70,7 +72,7 @@ export interface OutputDto {
   totalCount: number;
   start?: number;
   limit?: number;
-  data: MovieOutputDto[];
+  data: MovieOutputDto[] | MovieDocument[];
 }
 
 export interface filterDto {

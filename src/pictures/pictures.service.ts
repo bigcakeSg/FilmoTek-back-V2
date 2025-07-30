@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import { HttpException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Jimp } from 'jimp';
 import { PictureDto, PictureType } from './dto/picture.dto';
 
@@ -16,12 +16,16 @@ export class PicturesService {
       }
 
       const image = await Jimp.read(picture.url);
-      const fileName: `${string}.${string}` = `${type.toLowerCase()}s/${picture.name ? picture.name.replace(/\s+/g, '') + '-' : ''}${Date.now()}.jpg`;
-      await image.resize({ w: picture.size?.w, h: picture.size?.h }).write(`media/${fileName}`);
+      const fileName: `${string}.${string}` = `${type.toLowerCase()}s/${picture.name ? picture.name.replace(/[^\w\s]/gi, '').replace(/\s+/g, '') + '-' : ''}${Date.now()}.jpg`;
+
+      const encodedFileName = fileName as `${string}.${string}`;
+
+      await image.resize({ w: picture.size?.w, h: picture.size?.h }).write(`media/${encodedFileName}`);
 
       return fileName;
     } catch (error) {
-      throw new HttpException(error.message, 500);
+      console.log(error.message);
+      return;
     }
   }
 }

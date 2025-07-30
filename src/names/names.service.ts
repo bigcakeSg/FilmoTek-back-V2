@@ -26,9 +26,9 @@ export class NamesService {
     if (foundName && isCatchError) throw new ConflictException(`"${name.text}" already exists`);
     if (foundName) return foundName;
 
-    const picture = name.picture
+    const picture = name.picture?.url
       ? await this.picturesService.savePicture(
-          { url: name.picture.url, name: name.text, size: { w: name.picture.width, h: name.picture.height } },
+          { url: name.picture.url, name: name.id, size: { w: name.picture.width, h: name.picture.height } },
           PictureType.PORTRAIT,
         )
       : undefined;
