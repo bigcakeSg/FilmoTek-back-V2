@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestj
 import { MoviesService } from './movies.service';
 import { MovieDocument } from './schemas/movie.schema';
 import { filterDto, MovieDto, OutputDto } from './dto/movie.dto';
+import { Public } from 'src/auth/public.decorator';
 
 @Controller('movies')
 export class MoviesController {
@@ -12,11 +13,13 @@ export class MoviesController {
     return this.moviesService.createMovie(createMovieDto);
   }
 
+  @Public()
   @Get('title/:movieId')
   async getOneMovie(@Param() params: { movieId: string }): Promise<MovieDocument> {
     return this.moviesService.getOneMovie(params.movieId);
   }
 
+  @Public()
   @Post()
   async getAllMoviesWithPagination(
     @Body()
@@ -49,13 +52,37 @@ export class MoviesController {
     return await this.moviesService.updateMovie(movieId, updateMovieDto);
   }
 
+  @Public()
   @Get('genre/:genreId')
-  async getMoviesByGenre(@Param('genreId') genreId: string): Promise<MovieDocument[]> {
+  async getMoviesByGenre(@Param('genreId') genreId: string): Promise<OutputDto> {
     return await this.moviesService.getMoviesByGenre(genreId);
   }
 
+  @Public()
   @Get('name/:nameId')
-  async getMoviesByName(@Param('nameId') nameId: string): Promise<MovieDocument[]> {
+  async getMoviesByName(@Param('nameId') nameId: string): Promise<OutputDto> {
     return await this.moviesService.getMoviesByName(nameId);
+  }
+
+  @Get('export')
+  async exportMovies(
+    @Query()
+    query: {
+      start?: string;
+      limit?: string;
+    },
+  ): Promise<unknown> {
+    return this.moviesService.exportMovies(query.start ? +query.start : 0, query.limit ? +query.limit : undefined);
+  }
+
+  @Post('import')
+  async importMovies(
+    @Query()
+    query: {
+      start?: string;
+      limit?: string;
+    },
+  ): Promise<void> {
+    return this.moviesService.importMovies(query.start ? +query.start : 0, query.limit ? +query.limit : undefined);
   }
 }
