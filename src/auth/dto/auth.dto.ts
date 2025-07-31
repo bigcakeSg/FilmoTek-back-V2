@@ -1,6 +1,7 @@
 export interface SignInDto {
   username: string;
   password: string;
+  isNoExpire?: boolean;
 }
 
 export interface SignUpDto {

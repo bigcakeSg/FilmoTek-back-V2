@@ -22,7 +22,11 @@ export class AuthService {
     };
   }
 
-  async signIn(username: string, password: string): Promise<{ access_token: string; refresh_token: string }> {
+  async signIn(
+    username: string,
+    password: string,
+    isNoExpire?: boolean,
+  ): Promise<{ access_token: string; refresh_token: string }> {
     const user = await this.usersService.findOneUsers(username);
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new UnauthorizedException();
@@ -32,7 +36,7 @@ export class AuthService {
 
     return {
       access_token: await this.jwtService.signAsync(payload),
-      refresh_token: await this.createRefreshToken(user),
+      refresh_token: await this.createRefreshToken(user, isNoExpire),
     };
   }
 
@@ -56,8 +60,8 @@ export class AuthService {
     }
   }
 
-  async createRefreshToken(user: UserDocument): Promise<string> {
-    const refreshToken = await this.jwtService.signAsync({}, { expiresIn: '7d' });
+  async createRefreshToken(user: UserDocument, isNoExpire?: boolean): Promise<string> {
+    const refreshToken = await this.jwtService.signAsync({}, { expiresIn: isNoExpire ? undefined : '1d' });
     user.refreshToken = refreshToken;
     await user.save();
     return refreshToken;
