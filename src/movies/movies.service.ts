@@ -5,7 +5,6 @@ import { Model } from 'mongoose';
 import { filterDto, MovieDto, OutputDto, NameDto } from './dto/movie.dto';
 import { MovieDocument } from './schemas/movie.schema';
 import { GenreDocument } from 'src/genres/schemas/genre.schema';
-import { NameDocument } from 'src/names/schemas/name.schema';
 import { PicturesService } from 'src/pictures/pictures.service';
 import { NamesService } from 'src/names/names.service';
 import { PictureType } from 'src/pictures/dto/picture.dto';
@@ -16,7 +15,6 @@ export class MoviesService {
   constructor(
     @Inject('MOVIE_MODEL') private readonly movieModel: Model<MovieDocument>,
     @Inject('GENRE_MODEL') private readonly genreModel: Model<GenreDocument>,
-    @Inject('NAME_MODEL') private readonly nameModel: Model<NameDocument>,
     private readonly httpService: HttpService,
     private readonly picturesService: PicturesService,
     private readonly namesService: NamesService,
