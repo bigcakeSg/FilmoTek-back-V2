@@ -12,7 +12,7 @@ import { AuthProviders } from './auth.provider';
     JwtModule.register({
       global: true,
       secret: jwtConstants.secret,
-      signOptions: { expiresIn: '3600s' },
+      signOptions: { expiresIn: '600s' },
     }),
   ],
   controllers: [AuthController],
