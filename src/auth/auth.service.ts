@@ -70,7 +70,6 @@ export class AuthService {
   async refreshAccessToken(refreshToken: string) {
     try {
       const decoded = await this.jwtService.verifyAsync(refreshToken);
-      console.log('Refresh token:', decoded);
       const user = await this.userModel.findOne({ refreshToken });
 
       if (!user) {
