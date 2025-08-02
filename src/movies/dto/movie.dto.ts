@@ -9,18 +9,10 @@ export interface NameDto {
 export interface MovieDto {
   imdbId: string;
   originalTitle: string;
-  regionalTitles?: [
-    {
-      title: string;
-      region: string;
-    },
-  ];
+  frenchTitle?: string;
+  englishTitle?: string;
   picture: string;
-  releaseDate: {
-    year: number;
-    month: number;
-    day: number;
-  };
+  releaseDate: string;
   duration: number;
   plot: string;
   genres: {
@@ -47,7 +39,7 @@ export interface MovieDto {
       attributes?: string[];
     }[];
   };
-  supports: string[];
+  supports?: string[];
   watched?: boolean;
 }
 
@@ -55,7 +47,11 @@ export interface MovieOutputDto {
   _id: string;
   imdbId: string;
   originalTitle: string;
+  normalizedOriginalTitle: string;
   frenchTitle?: string;
+  normalizedFrenchTitle?: string;
+  englishTitle?: string;
+  normalizedEnglishTitle?: string;
   picture: string;
   releaseDate: string;
   duration: number;
@@ -64,6 +60,7 @@ export interface MovieOutputDto {
     text: string;
   }[];
   supports: string[];
+  videos: string[];
   watched?: boolean;
 }
 
@@ -76,6 +73,6 @@ export interface OutputDto {
 }
 
 export interface filterDto {
-  filter: string;
+  name: 'genre' | 'name' | 'title';
   value: string;
 }

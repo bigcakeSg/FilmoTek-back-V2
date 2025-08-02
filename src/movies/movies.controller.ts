@@ -29,7 +29,7 @@ export class MoviesController {
     query: {
       start?: string;
       limit?: string;
-      sortby?: string;
+      sortby?: 'releaseDate' | 'normalizedOriginalTitle' | 'normalizedFrenchTitle' | 'normalizedEnglishTitle';
       direction?: 'desc' | 'asc';
     },
   ): Promise<OutputDto> {
@@ -42,26 +42,14 @@ export class MoviesController {
     return this.moviesService.deleteMovie(params.movieId);
   }
 
-  @Get('api-data/title/:imdbId')
-  async getDataFromApi(@Param('imdbId') imdbId: string): Promise<MovieDto> {
-    return await this.moviesService.getMovieFromRapidApi(imdbId);
-  }
-
   @Patch('title/:movieId')
   async updateMovie(@Param('movieId') movieId: string, @Body() updateMovieDto: MovieDto): Promise<MovieDocument> {
     return await this.moviesService.updateMovie(movieId, updateMovieDto);
   }
 
-  @Public()
-  @Get('genre/:genreId')
-  async getMoviesByGenre(@Param('genreId') genreId: string): Promise<OutputDto> {
-    return await this.moviesService.getMoviesByGenre(genreId);
-  }
-
-  @Public()
-  @Get('name/:nameId')
-  async getMoviesByName(@Param('nameId') nameId: string): Promise<OutputDto> {
-    return await this.moviesService.getMoviesByName(nameId);
+  @Get('api-data/title/:imdbId')
+  async getDataFromApi(@Param('imdbId') imdbId: string): Promise<MovieDto> {
+    return await this.moviesService.getMovieFromRapidApi(imdbId);
   }
 
   @Get('export')

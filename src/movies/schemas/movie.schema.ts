@@ -1,7 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
 import { Casting, CastingSchema, TeamMember, TeamMemberSchema } from './teamMember.schema';
-import { ReleaseDate, ReleaseDateSchema } from './releaseDate.schema';
 
 export type MovieDocument = HydratedDocument<Movie>;
 
@@ -13,14 +12,26 @@ export class Movie {
   @Prop({ required: true })
   originalTitle: string;
 
-  @Prop({ type: Array, default: [] })
-  regionalTitles: { title: string; region: string }[];
+  @Prop({ required: true })
+  normalizedOriginalTitle: string;
+
+  @Prop({ required: false })
+  frenchTitle: string;
+
+  @Prop({ required: false })
+  normalizedFrenchTitle: string;
+
+  @Prop({ required: false })
+  englishTitle: string;
+
+  @Prop({ required: false })
+  normalizedEnglishTitle: string;
 
   @Prop({ required: false })
   picture: string;
 
-  @Prop({ type: ReleaseDateSchema, required: true })
-  releaseDate: ReleaseDate;
+  @Prop({ required: true })
+  releaseDate: string;
 
   @Prop({ required: true })
   duration: number;
@@ -42,6 +53,9 @@ export class Movie {
 
   @Prop({ default: [] })
   supports: string[];
+
+  @Prop({ default: [] })
+  videos: string[];
 
   @Prop({ default: true })
   watched: boolean;
