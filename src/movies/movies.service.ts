@@ -45,11 +45,11 @@ export class MoviesService {
 
     const picture = baseInfo.primaryImage?.url;
 
-    const releaseDate = {
-      year: baseInfo.releaseYear?.year || null,
-      month: baseInfo.releaseDate?.month,
-      day: baseInfo.releaseDate?.day,
-    };
+    const releaseDate = new Date(
+      baseInfo.releaseDate?.year,
+      baseInfo.releaseDate?.month - 1,
+      baseInfo.releaseDate?.day,
+    ).toISOString();
 
     const genres =
       baseInfo.genres?.genres.map((genre) => ({
@@ -79,7 +79,8 @@ export class MoviesService {
     return {
       imdbId: baseInfo.id,
       originalTitle: baseInfo.originalTitleText.text,
-      regionalTitles,
+      frenchTitle: regionalTitles.find((title) => title.region === 'FR')?.title || undefined,
+      englishTitle: regionalTitles.find((title) => title.region === 'GB')?.title || undefined,
       picture,
       releaseDate,
       duration: baseInfo.runtime?.seconds,
@@ -138,6 +139,9 @@ export class MoviesService {
 
     const createdMovie = new this.movieModel({
       ...movieData,
+      normalizedOriginalTitle: normalizeTitle(movieData.originalTitle),
+      normalizedFrenchTitle: normalizeTitle(movieData.frenchTitle ?? ''),
+      normalizedEnglishTitle: normalizeTitle(movieData.englishTitle ?? ''),
       picture,
       genres,
       directors,
@@ -172,93 +176,45 @@ export class MoviesService {
   async getAllMovies(queries: {
     start?: number;
     limit?: number;
-    sortby?: string;
+    sortby?: 'releaseDate' | 'normalizedOriginalTitle' | 'normalizedFrenchTitle' | 'normalizedEnglishTitle';
     direction?: 'desc' | 'asc';
     filter?: filterDto[];
   }): Promise<OutputDto> {
     const { start, limit, sortby, direction, filter } = queries;
-    const filters = Array.isArray(filter)
-      ? filter.map((elt) => ({ [elt.filter]: { $regex: elt.value, $options: 'i' } }))
-      : null;
 
-    let movies = await this.movieModel
-      .aggregate([
-        {
-          $addFields: {
-            releaseDate: {
-              $dateFromParts: {
-                year: '$releaseDate.year',
-                month: '$releaseDate.month',
-                day: '$releaseDate.day',
-              },
-            },
-          },
-        },
-        {
-          $addFields: {
-            frenchTitle: {
-              $let: {
-                vars: {
-                  frTitleObj: {
-                    $arrayElemAt: [
-                      {
-                        $filter: {
-                          input: '$regionalTitles',
-                          as: 'title',
-                          cond: { $eq: ['$$title.region', 'FR'] },
-                        },
-                      },
-                      0,
-                    ],
-                  },
-                },
-                in: '$$frTitleObj.title',
-              },
-            },
-          },
-        },
-        // Remove fields
-        {
-          $project: {
-            regionalTitles: 0,
-            directors: 0,
-            plot: 0,
-            genres: 0,
-            writers: 0,
-            casting: 0,
-            __v: 0,
-          },
-        },
-        ...(start ? [{ $skip: start }] : []),
-        ...(limit ? [{ $limit: limit }] : []),
-        ...(filters ? [{ $match: { $or: filters } }] : []),
-      ])
-      .exec();
-
-    movies = movies.map((movie) => ({
-      ...movie,
-      normOriginalTitle: movie.originalTitle || '',
-      normFrenchTitle: movie.frenchTitle || '',
-      originalTitle: normalizeTitle(movie.originalTitle),
-      frenchTitle: movie.frenchTitle ? normalizeTitle(movie.frenchTitle) : null,
-    }));
-
-    if (sortby) {
-      movies = movies.sort((a, b) => {
-        const aValue = a[sortby];
-        const bValue = b[sortby];
-        if (typeof aValue === 'string' && typeof bValue === 'string') {
-          if (direction === 'desc') {
-            return bValue.localeCompare(aValue);
-          }
-          return aValue.localeCompare(bValue);
-        }
-        if (direction === 'desc') {
-          return bValue - aValue;
-        }
-        return aValue - bValue;
+    let filters = {};
+    if (Array.isArray(filter) && filter.length > 0) {
+      const filterList = filter.map((f) => {
+        if (f.name === 'genre') return [{ genres: f.value }];
+        if (f.name === 'name')
+          return [
+            { 'directors.name': f.value },
+            { 'writers.name': f.value },
+            { 'casting.principal.name': f.value },
+            { 'casting.extended.name': f.value },
+          ];
+        if (f.name === 'title')
+          return [
+            { originalTitle: { $regex: f.value, $options: 'i' } },
+            { frenchTitle: { $regex: f.value, $options: 'i' } },
+            { englishTitle: { $regex: f.value, $options: 'i' } },
+          ];
       });
+
+      filters = {
+        $or: filterList.flatMap((item: Array<unknown>) => item) || [],
+      };
+
+      filters = { $and: filterList.map((item) => ({ $or: item })) };
     }
+
+    const movies = await this.movieModel
+      .find(filters)
+      .select('imdbId originalTitle frenchTitle englishTitle picture releaseDate')
+      .sort(sortby ? { [sortby]: direction === 'desc' ? -1 : 1 } : {})
+      .limit(limit || undefined)
+      .skip(start || 0)
+      .exec();
 
     const totalCount = await this.movieModel.countDocuments().exec();
 
@@ -267,13 +223,7 @@ export class MoviesService {
       totalCount,
       start,
       limit,
-      data: movies.map((movie) => ({
-        ...movie,
-        originalTitle: movie.normOriginalTitle,
-        frenchTitle: movie.normFrenchTitle,
-        normOriginalTitle: undefined,
-        normFrenchTitle: undefined,
-      })),
+      data: movies,
     };
   }
 
@@ -347,47 +297,6 @@ export class MoviesService {
       .exec();
   }
 
-  async getMoviesByGenre(genreId: string): Promise<OutputDto> {
-    const movies = await this.movieModel
-      .find({ genres: genreId })
-      .select('imdbId originalTitle regionalTitles picture releaseDate')
-      .sort('originalTitle')
-      .exec();
-
-    const totalCount = await this.movieModel.countDocuments().exec();
-
-    return {
-      count: movies.length,
-      totalCount,
-      data: movies,
-    };
-  }
-
-  async getMoviesByName(nameId: string): Promise<OutputDto> {
-    const movies = await this.movieModel
-      .find({
-        $or: [
-          { 'directors.name': nameId },
-          { 'writers.name': nameId },
-          { 'casting.principal.name': nameId },
-          { 'casting.extended.name': nameId },
-        ],
-      })
-      .select('imdbId originalTitle regionalTitles picture releaseDate directors watched')
-      .populate([{ path: 'directors.name', select: '-__v' }])
-      .sort('originalTitle')
-      .select('-__v')
-      .exec();
-
-    const totalCount = await this.movieModel.countDocuments().exec();
-
-    return {
-      count: movies.length,
-      totalCount,
-      data: movies,
-    };
-  }
-
   async exportMovies(start: number, limit?: number): Promise<unknown> {
     const moviesFilePath = 'backup/FilmoTEKdb.movies.json';
     const genresFilePath = 'backup/FilmoTEKdb.genres.json';
@@ -424,16 +333,10 @@ export class MoviesService {
       return {
         imdbId: movie.imdbId,
         originalTitle: movie.originalTitle,
-        regionalTitles: movie.regionalTitles.map((title) => ({
-          title: title.title,
-          region: title.region,
-        })),
+        frenchTitle: movie.regionalTitles.find((title) => title.region === 'FR')?.title || undefined,
+        englishTitle: movie.regionalTitles.find((title) => title.region === 'GB')?.title || undefined,
         picture: movie.picture.url,
-        releaseDate: {
-          year: movie.releaseDate.year,
-          month: movie.releaseDate.month,
-          day: movie.releaseDate.day,
-        },
+        releaseDate: new Date(movie.releaseDate.year, movie.releaseDate.month - 1, movie.releaseDate.day).toISOString(),
         duration: movie.duration,
         plot: movie.plot,
         genres: movie.genres.map((genre) => {
@@ -489,6 +392,7 @@ export class MoviesService {
           }),
         },
         supports: newSupports,
+        videos: movie.videos || [],
         watched: movie.seen,
       };
     });

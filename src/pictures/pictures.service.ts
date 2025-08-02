@@ -9,18 +9,25 @@ export class PicturesService {
 
   async savePicture(picture: PictureDto, type: PictureType): Promise<string> {
     try {
-      const folder = `media/${type.toLowerCase()}s`;
+      const folder = `${type.toLowerCase()}s`;
 
-      if (!fs.existsSync(folder)) {
-        fs.mkdirSync(folder, { recursive: true });
+      if (!fs.existsSync(`media/${folder}`)) {
+        fs.mkdirSync(`media/${folder}`, { recursive: true });
       }
 
       const image = await Jimp.read(picture.url);
-      const fileName: `${string}.${string}` = `${type.toLowerCase()}s/${picture.name ? picture.name.replace(/[^\w\s]/gi, '').replace(/\s+/g, '') + '-' : ''}${Date.now()}.jpg`;
+      const fileName: `${string}.${string}` =
+        `${picture.name ? picture.name.replace(/[^\w\s]/gi, '').replace(/\s+/g, '') + '-' : ''}${Date.now()}.jpg` as `${string}.${string}`;
 
-      const encodedFileName = fileName as `${string}.${string}`;
+      const baseName = fileName.split('-')[0];
+      const existingFiles = fs.readdirSync(`media/${folder}`);
+      existingFiles.forEach((file) => {
+        if (file.startsWith(baseName)) {
+          fs.unlinkSync(`media/${folder}/${file}`);
+        }
+      });
 
-      await image.resize({ w: picture.size?.w, h: picture.size?.h }).write(`media/${encodedFileName}`);
+      await image.resize({ w: picture.size?.w, h: picture.size?.h }).write(`media/${folder}/${fileName}`);
 
       return fileName;
     } catch (error) {
