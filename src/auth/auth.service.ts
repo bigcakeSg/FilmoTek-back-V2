@@ -61,7 +61,7 @@ export class AuthService {
   }
 
   async createRefreshToken(user: UserDocument, isNoExpire?: boolean): Promise<string> {
-    const refreshToken = await this.jwtService.signAsync({}, { expiresIn: isNoExpire ? 0 : '1d' });
+    const refreshToken = await this.jwtService.signAsync({}, ...(isNoExpire ? [] : [{ expiresIn: '1d' }]));
     user.refreshToken = refreshToken;
     await user.save();
     return refreshToken;
