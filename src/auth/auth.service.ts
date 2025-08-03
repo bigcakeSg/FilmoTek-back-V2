@@ -22,11 +22,7 @@ export class AuthService {
     };
   }
 
-  async signIn(
-    username: string,
-    password: string,
-    isNoExpire?: boolean,
-  ): Promise<{ access_token: string; refresh_token: string }> {
+  async signIn(username: string, password: string): Promise<{ access_token: string; refresh_token: string }> {
     const user = await this.usersService.findOneUsers(username);
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new UnauthorizedException();
@@ -36,7 +32,7 @@ export class AuthService {
 
     return {
       access_token: await this.jwtService.signAsync(payload),
-      refresh_token: await this.createRefreshToken(user, isNoExpire),
+      refresh_token: await this.createRefreshToken(user),
     };
   }
 
@@ -60,8 +56,8 @@ export class AuthService {
     }
   }
 
-  async createRefreshToken(user: UserDocument, isNoExpire?: boolean): Promise<string> {
-    const refreshToken = await this.jwtService.signAsync({}, ...(isNoExpire ? [] : [{ expiresIn: '1d' }]));
+  async createRefreshToken(user: UserDocument): Promise<string> {
+    const refreshToken = await this.jwtService.signAsync({}, { expiresIn: '30d' });
     user.refreshToken = refreshToken;
     await user.save();
     return refreshToken;
@@ -80,6 +76,7 @@ export class AuthService {
 
       return {
         access_token: await this.jwtService.signAsync(payload),
+        refresh_token: await this.createRefreshToken(user),
       };
     } catch (error) {
       console.error('Error verifying refresh token:', error);
