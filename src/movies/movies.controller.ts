@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { MoviesService } from './movies.service';
 import { MovieDocument } from './schemas/movie.schema';
-import { filterDto, MovieDto, OutputDto } from './dto/movie.dto';
+import { MovieDto, OutputDto } from './dto/movie.dto';
 import { Public } from 'src/auth/public.decorator';
 
 @Controller('movies')
@@ -20,21 +20,25 @@ export class MoviesController {
   }
 
   @Public()
-  @Post()
+  @Get()
   async getAllMoviesWithPagination(
-    @Body()
-    filter: filterDto[],
-
     @Query()
     query: {
       start?: string;
       limit?: string;
-      sortby?: 'releaseDate' | 'normalizedOriginalTitle' | 'normalizedFrenchTitle' | 'normalizedEnglishTitle';
+      sortby?:
+        | 'releaseDate'
+        | 'normalizedOriginalTitle'
+        | 'normalizedFrenchTitle'
+        | 'normalizedEnglishTitle'
+        | 'supports';
       direction?: 'desc' | 'asc';
+      filter: string | string[];
+      format: 'full' | ' lite';
     },
   ): Promise<OutputDto> {
-    const { start, limit, sortby, direction } = query;
-    return this.moviesService.getAllMovies({ start: +start, limit: +limit, sortby, direction, filter });
+    const { start, limit, sortby, direction, format, filter } = query;
+    return this.moviesService.getAllMovies({ start: +start, limit: +limit, sortby, direction, filter, format });
   }
 
   @Delete('title/:movieId')

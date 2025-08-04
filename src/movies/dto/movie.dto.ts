@@ -71,8 +71,3 @@ export interface OutputDto {
   limit?: number;
   data: MovieOutputDto[] | MovieDocument[];
 }
-
-export interface filterDto {
-  name: 'genre' | 'name' | 'title';
-  value: string;
-}
