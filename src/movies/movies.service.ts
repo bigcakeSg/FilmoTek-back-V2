@@ -2,7 +2,7 @@ import { ConflictException, HttpException, Inject, Injectable, NotFoundException
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Model } from 'mongoose';
-import { filterDto, MovieDto, OutputDto, NameDto } from './dto/movie.dto';
+import { MovieDto, OutputDto, NameDto } from './dto/movie.dto';
 import { MovieDocument } from './schemas/movie.schema';
 import { GenreDocument } from 'src/genres/schemas/genre.schema';
 import { PicturesService } from 'src/pictures/pictures.service';
@@ -176,44 +176,68 @@ export class MoviesService {
   async getAllMovies(queries: {
     start?: number;
     limit?: number;
-    sortby?: 'releaseDate' | 'normalizedOriginalTitle' | 'normalizedFrenchTitle' | 'normalizedEnglishTitle';
+    sortby?:
+      | 'releaseDate'
+      | 'normalizedOriginalTitle'
+      | 'normalizedFrenchTitle'
+      | 'normalizedEnglishTitle'
+      | 'supports';
     direction?: 'desc' | 'asc';
-    filter?: filterDto[];
+    filter?: string | string[];
+    format?: 'full' | ' lite';
   }): Promise<OutputDto> {
-    const { start, limit, sortby, direction, filter } = queries;
+    const { start, limit, sortby, direction, filter = [], format } = queries;
 
-    let filters = {};
-    if (Array.isArray(filter) && filter.length > 0) {
-      const filterList = filter.map((f) => {
-        if (f.name === 'genre') return [{ genres: f.value }];
-        if (f.name === 'name')
-          return [
-            { 'directors.name': f.value },
-            { 'writers.name': f.value },
-            { 'casting.principal.name': f.value },
-            { 'casting.extended.name': f.value },
-          ];
-        if (f.name === 'title')
-          return [
-            { originalTitle: { $regex: f.value, $options: 'i' } },
-            { frenchTitle: { $regex: f.value, $options: 'i' } },
-            { englishTitle: { $regex: f.value, $options: 'i' } },
-          ];
-      });
+    const newFilter = Array.isArray(filter) ? filter : [filter];
+    const filterList = newFilter.map((f) => {
+      const splitFilter = decodeURIComponent(f).split('+');
+      const name = splitFilter[0];
+      const value = splitFilter[1];
 
-      filters = {
-        $or: filterList.flatMap((item: Array<unknown>) => item) || [],
-      };
+      if (name === 'genre') return [{ genres: value }];
+      if (name === 'name')
+        return [
+          { 'directors.name': value },
+          { 'writers.name': value },
+          { 'casting.principal.name': value },
+          { 'casting.extended.name': value },
+        ];
+      if (name === 'title')
+        return [
+          { originalTitle: { $regex: value, $options: 'i' } },
+          { frenchTitle: { $regex: value, $options: 'i' } },
+          { englishTitle: { $regex: value, $options: 'i' } },
+          { normalizedOriginalTitle: { $regex: value, $options: 'i' } },
+          { normalizedFrenchTitle: { $regex: value, $options: 'i' } },
+          { normalizedEnglishTitle: { $regex: value, $options: 'i' } },
+        ];
+      if (name === 'supports') return [{ supports: value }];
+    });
 
-      filters = { $and: filterList.map((item) => ({ $or: item })) };
-    }
+    const filters = { $and: filterList.map((item) => ({ $or: item })) };
+
+    const select =
+      format === 'full'
+        ? 'imdbId originalTitle frenchTitle englishTitle picture releaseDate duration plot genres supports videos watched'
+        : 'imdbId originalTitle frenchTitle englishTitle picture releaseDate';
 
     const movies = await this.movieModel
       .find(filters)
-      .select('imdbId originalTitle frenchTitle englishTitle picture releaseDate')
+      .select(select)
       .sort(sortby ? { [sortby]: direction === 'desc' ? -1 : 1 } : {})
       .limit(limit || undefined)
       .skip(start || 0)
+      .populate(
+        format === 'full'
+          ? [
+              { path: 'genres', select: '-__v' },
+              { path: 'directors.name', select: '-__v' },
+              { path: 'writers.name', select: '-__v' },
+              { path: 'casting.principal.name', select: '-__v' },
+              { path: 'casting.extended.name', select: '-__v' },
+            ]
+          : [],
+      )
       .exec();
 
     const totalCount = await this.movieModel.countDocuments().exec();
