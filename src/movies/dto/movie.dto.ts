@@ -61,7 +61,6 @@ export interface MovieOutputDto {
   }[];
   supports: string[];
   videos: string[];
-  watched?: boolean;
 }
 
 export interface OutputDto {

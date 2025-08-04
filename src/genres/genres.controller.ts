@@ -12,7 +12,7 @@ export class GenresController {
   }
 
   @Get()
-  async findAllGenres(): Promise<GenreDto[]> {
-    return await this.genresService.findAllGenres();
+  async getAllGenres(): Promise<GenreDto[]> {
+    return await this.genresService.getAllGenres();
   }
 }

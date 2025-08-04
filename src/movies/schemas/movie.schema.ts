@@ -56,9 +56,6 @@ export class Movie {
 
   @Prop({ default: [] })
   videos: string[];
-
-  @Prop({ default: true })
-  watched: boolean;
 }
 
 export const MovieSchema = SchemaFactory.createForClass(Movie);
