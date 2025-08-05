@@ -7,6 +7,7 @@ import { MovieDocument } from './schemas/movie.schema';
 import { GenreDocument } from 'src/genres/schemas/genre.schema';
 import { PicturesService } from 'src/pictures/pictures.service';
 import { NamesService } from 'src/names/names.service';
+import { CollectionsService } from 'src/collections/collections.service';
 import { PictureType } from 'src/pictures/dto/picture.dto';
 import { normalizeTitle } from 'src/utils/helpers';
 import * as fs from 'fs';
@@ -18,6 +19,7 @@ export class MoviesService {
     private readonly httpService: HttpService,
     private readonly picturesService: PicturesService,
     private readonly namesService: NamesService,
+    private readonly collectionsService: CollectionsService,
   ) {}
 
   private async newNames(names: { name: NameDto; attributes?: string[] }[]): Promise<
@@ -147,7 +149,6 @@ export class MoviesService {
       directors,
       writers,
       casting: { principal: principalCast, extended: extendedCast },
-      watched: false,
     });
 
     await createdMovie.save();
@@ -195,6 +196,8 @@ export class MoviesService {
       const value = splitFilter[1];
 
       if (name === 'genre') return [{ genres: value }];
+      if (name === 'supports') return [{ supports: value }];
+      if (name === 'collections') return [{ collections: value }];
       if (name === 'name')
         return [
           { 'directors.name': value },
@@ -211,7 +214,6 @@ export class MoviesService {
           { normalizedFrenchTitle: { $regex: value, $options: 'i' } },
           { normalizedEnglishTitle: { $regex: value, $options: 'i' } },
         ];
-      if (name === 'supports') return [{ supports: value }];
     });
 
     const filters = { $and: filterList.map((item) => ({ $or: item })) };
@@ -348,6 +350,8 @@ export class MoviesService {
     const supports = fs.readFileSync(supportsFilePath, 'utf-8');
     const importSupports = JSON.parse(supports) as any[];
 
+    const watched = await this.collectionsService.getOneCollectionByName('collection.watched');
+
     const newMovies = importMovies.slice(start, limit).map((movie) => {
       const newSupports = [];
       importSupports.forEach((s) => {
@@ -417,7 +421,7 @@ export class MoviesService {
         },
         supports: newSupports,
         videos: movie.videos || [],
-        collections: movie.seen ? ['collection.watched'] : [],
+        collections: movie.seen ? [watched._id] : [],
       };
     });
 

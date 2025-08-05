@@ -18,6 +18,16 @@ export class CollectionsController {
     return await this.collectionsService.getAllCollections();
   }
 
+  @Get(':id')
+  async getOneCollectionById(@Param('id') id: string): Promise<CollectionDocument> {
+    return await this.collectionsService.getOneCollectionById(id);
+  }
+
+  @Get(':name')
+  async getOneCollectionByName(@Param('name') name: string): Promise<CollectionDocument> {
+    return await this.collectionsService.getOneCollectionByName(name);
+  }
+
   @Patch(':id')
   async updateCollection(@Body() collectionData: CollectionDto, @Param('id') collectionId: string) {
     return await this.collectionsService.updateCollection(collectionId, collectionData);

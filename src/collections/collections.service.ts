@@ -23,6 +23,14 @@ export class CollectionsService {
     return await this.collectionModel.find().select('-__v').exec();
   }
 
+  async getOneCollectionById(id: string): Promise<CollectionDocument> {
+    return await this.collectionModel.findById(id).select('-__v').exec();
+  }
+
+  async getOneCollectionByName(name: string): Promise<CollectionDocument> {
+    return await this.collectionModel.findOne({ name }).select('-__v').exec();
+  }
+
   async updateCollection(collectionId: string, collectionData: CollectionDto): Promise<CollectionDocument> {
     try {
       const updatedCollection = await this.collectionModel.findByIdAndUpdate(collectionId, collectionData, {
