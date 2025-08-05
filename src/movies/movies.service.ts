@@ -93,7 +93,7 @@ export class MoviesService {
         extended: castingExtended,
       },
       supports: baseInfo.supports,
-      watched: false,
+      collections: [],
     };
   };
 
@@ -218,8 +218,8 @@ export class MoviesService {
 
     const select =
       format === 'full'
-        ? 'imdbId originalTitle frenchTitle englishTitle picture releaseDate duration plot genres supports videos watched'
-        : 'imdbId originalTitle frenchTitle englishTitle picture releaseDate';
+        ? 'imdbId originalTitle frenchTitle englishTitle picture releaseDate duration plot genres supports videos watched collections'
+        : 'imdbId originalTitle frenchTitle englishTitle picture releaseDate collections';
 
     const movies = await this.movieModel
       .find(filters)
@@ -417,7 +417,7 @@ export class MoviesService {
         },
         supports: newSupports,
         videos: movie.videos || [],
-        watched: movie.seen,
+        collections: movie.seen ? ['collection.watched'] : [],
       };
     });
 

@@ -40,7 +40,7 @@ export interface MovieDto {
     }[];
   };
   supports?: string[];
-  watched?: boolean;
+  collections: string[];
 }
 
 export interface MovieOutputDto {
@@ -61,6 +61,7 @@ export interface MovieOutputDto {
   }[];
   supports: string[];
   videos: string[];
+  collections: string[];
 }
 
 export interface OutputDto {
