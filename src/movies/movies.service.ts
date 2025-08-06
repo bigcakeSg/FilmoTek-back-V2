@@ -135,8 +135,13 @@ export class MoviesService {
     const extendedCast = await this.newNames(movieData.casting.extended);
 
     const picture = await this.picturesService.savePicture(
-      { url: movieData.picture, name: movieData.imdbId, size: { h: 1200 } },
+      { url: movieData.picture, name: movieData.imdbId, size: { h: 800 } },
       PictureType.POSTER,
+    );
+    await this.picturesService.savePicture(
+      { url: movieData.picture, name: movieData.imdbId, size: { h: 400 } },
+      PictureType.POSTER,
+      true,
     );
 
     const createdMovie = new this.movieModel({

@@ -1,9 +1,9 @@
 export enum PictureType {
   PORTRAIT = 'portrait',
-  POSTER = 'POSTER',
+  POSTER = 'poster',
 }
 export interface PictureDto {
   url: string;
-  name?: string;
+  name: string;
   size?: { w?: number; h?: number };
 }
