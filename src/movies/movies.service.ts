@@ -196,8 +196,8 @@ export class MoviesService {
       const value = splitFilter[1];
 
       if (name === 'genre') return [{ genres: value }];
-      if (name === 'supports') return [{ supports: value }];
-      if (name === 'collections') return [{ collections: value }];
+      if (name === 'support') return [{ supports: value }];
+      if (name === 'collection') return [{ collections: value }];
       if (name === 'name')
         return [
           { 'directors.name': value },

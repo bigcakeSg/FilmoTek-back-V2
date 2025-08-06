@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param } from '@nestjs/common';
 import { CollectionsService } from './collections.service';
 import { CollectionDto } from './dto/collection.dto';
 import { CollectionDocument } from './schemas/collection.schema';
+import { Public } from 'src/auth/public.decorator';
 
 @Controller('collections')
 export class CollectionsController {
@@ -13,6 +14,7 @@ export class CollectionsController {
     return await this.collectionsService.createCollection(createCollectionDto);
   }
 
+  @Public()
   @Get()
   async getAllCollections(): Promise<CollectionDocument[]> {
     return await this.collectionsService.getAllCollections();
