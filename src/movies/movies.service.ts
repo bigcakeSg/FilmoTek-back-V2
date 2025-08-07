@@ -39,7 +39,13 @@ export class MoviesService {
     );
   }
 
-  private formatMovieData = ({ baseInfo, principalCast, extendedCast, creatorsDirectorsWriters, titles }): MovieDto => {
+  private readonly formatMovieData = ({
+    baseInfo,
+    principalCast,
+    extendedCast,
+    creatorsDirectorsWriters,
+    titles,
+  }): MovieDto => {
     const regionalTitles = titles.map((title) => ({
       title: title?.title,
       region: title?.region,
@@ -230,8 +236,8 @@ export class MoviesService {
 
     const movies = await this.movieModel
       .find(filters)
+      .sort(sortby ? { [sortby]: direction === 'desc' ? -1 : 1, normalizedOriginalTitle: 1 } : {})
       .select(select)
-      .sort(sortby ? { [sortby]: direction === 'desc' ? -1 : 1 } : {})
       .limit(limit || undefined)
       .skip(start || 0)
       .populate(
