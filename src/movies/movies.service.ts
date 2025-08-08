@@ -152,9 +152,11 @@ export class MoviesService {
 
     const createdMovie = new this.movieModel({
       ...movieData,
+      frenchTitle: movieData.frenchTitle ?? movieData.originalTitle,
+      englishTitle: movieData.englishTitle ?? movieData.originalTitle,
       normalizedOriginalTitle: normalizeTitle(movieData.originalTitle),
-      normalizedFrenchTitle: normalizeTitle(movieData.frenchTitle ?? ''),
-      normalizedEnglishTitle: normalizeTitle(movieData.englishTitle ?? ''),
+      normalizedFrenchTitle: normalizeTitle(movieData.frenchTitle ?? movieData.originalTitle),
+      normalizedEnglishTitle: normalizeTitle(movieData.englishTitle ?? movieData.originalTitle),
       picture,
       genres,
       directors,
@@ -234,9 +236,31 @@ export class MoviesService {
         ? 'imdbId originalTitle frenchTitle englishTitle picture releaseDate duration plot genres supports videos watched collections'
         : 'imdbId originalTitle frenchTitle englishTitle picture releaseDate collections';
 
+    let secondarySort;
+    switch (sortby) {
+      case 'releaseDate':
+        secondarySort = { normalizedOriginalTitle: 1 };
+        break;
+      case 'normalizedOriginalTitle':
+      case 'normalizedFrenchTitle':
+        secondarySort = { releaseDate: 1 };
+        break;
+      default:
+        secondarySort = {};
+        break;
+    }
+
     const movies = await this.movieModel
       .find(filters)
-      .sort(sortby ? { [sortby]: direction === 'desc' ? -1 : 1, normalizedOriginalTitle: 1 } : {})
+      .sort(
+        sortby
+          ? {
+              [sortby]: direction === 'desc' ? -1 : 1,
+              ...secondarySort,
+              _id: 1,
+            }
+          : {},
+      )
       .select(select)
       .limit(limit || undefined)
       .skip(start || 0)
@@ -253,12 +277,18 @@ export class MoviesService {
       )
       .exec();
 
+    const filterCount = await this.movieModel.find(filters).select(select).countDocuments().exec();
+
     const totalCount = await this.movieModel.countDocuments().exec();
 
     return {
-      count: movies.length,
       totalCount,
-      start,
+      filterCount,
+      countToEnd:
+        filterCount - (start || 0) - (limit || filterCount) < 0
+          ? 0
+          : filterCount - (start || 0) - (limit || filterCount),
+      start: start || 0,
       limit,
       data: movies,
     };

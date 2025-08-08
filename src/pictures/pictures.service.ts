@@ -17,7 +17,7 @@ export class PicturesService {
 
       const image = await Jimp.read(picture.url);
       const fileName: `${string}.${string}` =
-        `${picture.name.replace(/[^\w\s]/gi, '').replace(/\s+/g, '')}}.jpg` as `${string}.${string}`;
+        `${picture.name.replace(/[^\w\s]/gi, '').replace(/\s+/g, '')}.jpg` as `${string}.${string}`;
 
       const baseName = fileName.split('-')[0];
       const existingFiles = fs.readdirSync(`media/${folder}`);

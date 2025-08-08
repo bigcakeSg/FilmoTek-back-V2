@@ -65,9 +65,10 @@ export interface MovieOutputDto {
 }
 
 export interface OutputDto {
-  count: number;
   totalCount: number;
-  start?: number;
+  filterCount: number;
+  countToEnd: number;
+  start: number;
   limit?: number;
   data: MovieOutputDto[] | MovieDocument[];
 }
