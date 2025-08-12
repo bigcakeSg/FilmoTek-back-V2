@@ -6,6 +6,9 @@ export class TeamMember {
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Name', required: true })
   name: mongoose.Types.ObjectId;
 
+  @Prop({ type: [String], required: false })
+  characters: string[];
+
   @Prop({ type: [String], default: [] })
   attributes: string[];
 }

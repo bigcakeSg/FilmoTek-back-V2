@@ -22,19 +22,20 @@ export class MoviesService {
     private readonly collectionsService: CollectionsService,
   ) {}
 
-  private async newNames(names: { name: NameDto; attributes?: string[] }[]): Promise<
+  private async newNames(names: { name: NameDto; characters?: string[]; attributes?: string[] }[]): Promise<
     {
       name: NameDto;
+      characters?: string[];
       attributes: string[];
     }[]
   > {
     return await Promise.all(
-      names.map(async ({ name, attributes }) => {
+      names.map(async ({ name, characters, attributes }) => {
         const newName = await this.namesService.createName({
           ...name,
           picture: { url: name.picture, width: 600 },
         });
-        return { name: newName, attributes };
+        return { name: newName, ...(characters ? { characters } : {}), attributes };
       }),
     );
   }
