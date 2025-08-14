@@ -4,6 +4,7 @@ export const normalizeTitle = (title) => {
       .toLowerCase()
       // Le La Les Un Une Des L' D'
       .replace(/^(the |a |an |le |la |l'|les |un |une |d'|des |el |los |las |una |il |i |der |das |die |ein )/i, '')
+      .replace(/['"]/g, '')
       .replace(/[àáâãäå]/g, 'a')
       .replace(/æ/g, 'ae')
       .replace(/ç/g, 'c')

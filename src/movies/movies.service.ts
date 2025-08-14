@@ -7,6 +7,7 @@ import { MovieDocument } from './schemas/movie.schema';
 import { GenreDocument } from 'src/genres/schemas/genre.schema';
 import { PicturesService } from 'src/pictures/pictures.service';
 import { NamesService } from 'src/names/names.service';
+import { CollectionsService } from 'src/collections/collections.service';
 import { PictureType } from 'src/pictures/dto/picture.dto';
 import { normalizeTitle } from 'src/utils/helpers';
 import * as fs from 'fs';
@@ -18,26 +19,34 @@ export class MoviesService {
     private readonly httpService: HttpService,
     private readonly picturesService: PicturesService,
     private readonly namesService: NamesService,
+    private readonly collectionsService: CollectionsService,
   ) {}
 
-  private async newNames(names: { name: NameDto; attributes?: string[] }[]): Promise<
+  private async newNames(names: { name: NameDto; characters?: string[]; attributes?: string[] }[]): Promise<
     {
       name: NameDto;
+      characters?: string[];
       attributes: string[];
     }[]
   > {
     return await Promise.all(
-      names.map(async ({ name, attributes }) => {
+      names.map(async ({ name, characters, attributes }) => {
         const newName = await this.namesService.createName({
           ...name,
           picture: { url: name.picture, width: 600 },
         });
-        return { name: newName, attributes };
+        return { name: newName, ...(characters ? { characters } : {}), attributes };
       }),
     );
   }
 
-  private formatMovieData = ({ baseInfo, principalCast, extendedCast, creatorsDirectorsWriters, titles }): MovieDto => {
+  private readonly formatMovieData = ({
+    baseInfo,
+    principalCast,
+    extendedCast,
+    creatorsDirectorsWriters,
+    titles,
+  }): MovieDto => {
     const regionalTitles = titles.map((title) => ({
       title: title?.title,
       region: title?.region,
@@ -93,7 +102,7 @@ export class MoviesService {
         extended: castingExtended,
       },
       supports: baseInfo.supports,
-      watched: false,
+      collections: [],
     };
   };
 
@@ -133,21 +142,27 @@ export class MoviesService {
     const extendedCast = await this.newNames(movieData.casting.extended);
 
     const picture = await this.picturesService.savePicture(
-      { url: movieData.picture, name: movieData.imdbId, size: { h: 1200 } },
+      { url: movieData.picture, name: movieData.imdbId, size: { h: 800 } },
       PictureType.POSTER,
+    );
+    await this.picturesService.savePicture(
+      { url: movieData.picture, name: movieData.imdbId, size: { h: 400 } },
+      PictureType.POSTER,
+      true,
     );
 
     const createdMovie = new this.movieModel({
       ...movieData,
+      frenchTitle: movieData.frenchTitle ?? movieData.originalTitle,
+      englishTitle: movieData.englishTitle ?? movieData.originalTitle,
       normalizedOriginalTitle: normalizeTitle(movieData.originalTitle),
-      normalizedFrenchTitle: normalizeTitle(movieData.frenchTitle ?? ''),
-      normalizedEnglishTitle: normalizeTitle(movieData.englishTitle ?? ''),
+      normalizedFrenchTitle: normalizeTitle(movieData.frenchTitle ?? movieData.originalTitle),
+      normalizedEnglishTitle: normalizeTitle(movieData.englishTitle ?? movieData.originalTitle),
       picture,
       genres,
       directors,
       writers,
       casting: { principal: principalCast, extended: extendedCast },
-      watched: false,
     });
 
     await createdMovie.save();
@@ -195,6 +210,8 @@ export class MoviesService {
       const value = splitFilter[1];
 
       if (name === 'genre') return [{ genres: value }];
+      if (name === 'support') return [{ supports: value }];
+      if (name === 'collection') return [{ collections: value }];
       if (name === 'name')
         return [
           { 'directors.name': value },
@@ -211,20 +228,41 @@ export class MoviesService {
           { normalizedFrenchTitle: { $regex: value, $options: 'i' } },
           { normalizedEnglishTitle: { $regex: value, $options: 'i' } },
         ];
-      if (name === 'supports') return [{ supports: value }];
     });
 
     const filters = { $and: filterList.map((item) => ({ $or: item })) };
 
     const select =
       format === 'full'
-        ? 'imdbId originalTitle frenchTitle englishTitle picture releaseDate duration plot genres supports videos watched'
-        : 'imdbId originalTitle frenchTitle englishTitle picture releaseDate';
+        ? 'imdbId originalTitle frenchTitle englishTitle picture releaseDate duration plot genres supports videos watched collections'
+        : 'imdbId originalTitle frenchTitle englishTitle picture releaseDate collections';
+
+    let secondarySort;
+    switch (sortby) {
+      case 'releaseDate':
+        secondarySort = { normalizedOriginalTitle: 1 };
+        break;
+      case 'normalizedOriginalTitle':
+      case 'normalizedFrenchTitle':
+        secondarySort = { releaseDate: 1 };
+        break;
+      default:
+        secondarySort = {};
+        break;
+    }
 
     const movies = await this.movieModel
       .find(filters)
+      .sort(
+        sortby
+          ? {
+              [sortby]: direction === 'desc' ? -1 : 1,
+              ...secondarySort,
+              _id: 1,
+            }
+          : {},
+      )
       .select(select)
-      .sort(sortby ? { [sortby]: direction === 'desc' ? -1 : 1 } : {})
       .limit(limit || undefined)
       .skip(start || 0)
       .populate(
@@ -240,12 +278,18 @@ export class MoviesService {
       )
       .exec();
 
+    const filterCount = await this.movieModel.find(filters).select(select).countDocuments().exec();
+
     const totalCount = await this.movieModel.countDocuments().exec();
 
     return {
-      count: movies.length,
       totalCount,
-      start,
+      filterCount,
+      countToEnd:
+        filterCount - (start || 0) - (limit || filterCount) < 0
+          ? 0
+          : filterCount - (start || 0) - (limit || filterCount),
+      start: start || 0,
       limit,
       data: movies,
     };
@@ -348,6 +392,8 @@ export class MoviesService {
     const supports = fs.readFileSync(supportsFilePath, 'utf-8');
     const importSupports = JSON.parse(supports) as any[];
 
+    const watched = await this.collectionsService.getOneCollectionByName('collection.watched');
+
     const newMovies = importMovies.slice(start, limit).map((movie) => {
       const newSupports = [];
       importSupports.forEach((s) => {
@@ -417,7 +463,7 @@ export class MoviesService {
         },
         supports: newSupports,
         videos: movie.videos || [],
-        watched: movie.seen,
+        collections: movie.seen ? [watched._id] : [],
       };
     });
 

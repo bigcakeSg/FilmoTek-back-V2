@@ -7,7 +7,7 @@ import { GenreDto } from './dto/genre.dto';
 export class GenresService {
   constructor(@Inject('GENRE_MODEL') private readonly genreModel: Model<GenreDocument>) {}
 
-  async createGenre(createGenreDto: GenreDto): Promise<GenreDto> {
+  async createGenre(createGenreDto: GenreDto): Promise<GenreDocument> {
     try {
       return await this.genreModel.create(createGenreDto);
     } catch (error) {
@@ -19,7 +19,7 @@ export class GenresService {
     }
   }
 
-  async findAllGenres(): Promise<GenreDto[]> {
+  async getAllGenres(): Promise<GenreDocument[]> {
     return await this.genreModel.find().select('-__v').exec();
   }
 }

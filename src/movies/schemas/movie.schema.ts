@@ -57,8 +57,8 @@ export class Movie {
   @Prop({ default: [] })
   videos: string[];
 
-  @Prop({ default: true })
-  watched: boolean;
+  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Collection' }], default: [] })
+  collections: mongoose.Types.ObjectId[];
 }
 
 export const MovieSchema = SchemaFactory.createForClass(Movie);

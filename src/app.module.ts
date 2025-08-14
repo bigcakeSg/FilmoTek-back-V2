@@ -7,6 +7,7 @@ import { SupportsModule } from './supports/supports.module';
 import { MoviesModule } from './movies/movies.module';
 import { PicturesModule } from './pictures/pictures.module';
 import { UsersModule } from './users/users.module';
+import { CollectionsModule } from './collections/collections.module';
 import { AuthModule } from './auth/auth.module';
 
 @Module({
@@ -21,6 +22,7 @@ import { AuthModule } from './auth/auth.module';
     MoviesModule,
     PicturesModule,
     UsersModule,
+    CollectionsModule,
     AuthModule,
   ],
 })
