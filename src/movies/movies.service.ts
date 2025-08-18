@@ -210,8 +210,11 @@ export class MoviesService {
       const value = splitFilter[1];
 
       if (name === 'genre') return [{ genres: value }];
-      if (name === 'support') return [{ supports: value }];
-      if (name === 'collection') return [{ collections: value }];
+      if (name === 'support') return value.split(',').map((v) => ({ supports: v }));
+      if (name === 'collection') {
+        return value.split(',').map((v) => ({ collections: v }));
+      }
+      if (name === 'notcollection') return value.split(',').map((v) => ({ collections: { $ne: v } }));
       if (name === 'name')
         return [
           { 'directors.name': value },
@@ -230,7 +233,20 @@ export class MoviesService {
         ];
     });
 
-    const filters = { $and: filterList.map((item) => ({ $or: item })) };
+    const anyFilterListe = [];
+    const collectionsFilterList = [[]];
+
+    filterList.forEach((item) => {
+      if (Object.keys(item[0])[0] === 'collections')
+        collectionsFilterList[0].push(
+          ...item.map((i: any) => ({
+            collections: i.collections,
+          })),
+        );
+      else anyFilterListe.push(item);
+    });
+
+    const filters = { $and: anyFilterListe.concat(collectionsFilterList).map((item) => ({ $or: item })) };
 
     const select =
       format === 'full'
