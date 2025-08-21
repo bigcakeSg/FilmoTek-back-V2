@@ -40,13 +40,7 @@ export class MoviesService {
     );
   }
 
-  private readonly formatMovieData = ({
-    baseInfo,
-    principalCast,
-    extendedCast,
-    creatorsDirectorsWriters,
-    titles,
-  }): MovieDto => {
+  private readonly formatMovieData = ({ baseInfo, cast, creatorsDirectorsWriters, titles }): MovieDto => {
     const regionalTitles = titles.map((title) => ({
       title: title?.title,
       region: title?.region,
@@ -82,8 +76,7 @@ export class MoviesService {
 
     const directors = formatName(creatorsDirectorsWriters.directors?.[0]?.credits);
     const writers = formatName(creatorsDirectorsWriters.writers?.[0]?.credits);
-    const castingPrincipal = formatName(principalCast.principalCast?.[0]?.credits);
-    const castingExtended = formatName(extendedCast.cast?.edges.map(({ node }) => node));
+    const casting = formatName(cast.principalCast?.[0]?.credits);
 
     return {
       imdbId: baseInfo.id,
@@ -94,14 +87,15 @@ export class MoviesService {
       releaseDate,
       duration: baseInfo.runtime?.seconds,
       plot: baseInfo.plot?.plotText?.plainText,
+      countriesOfOrigin: [],
+      spokenLanguages: [],
+      companies: [],
       genres,
       directors,
       writers,
-      casting: {
-        principal: castingPrincipal,
-        extended: castingExtended,
-      },
+      casting,
       supports: baseInfo.supports,
+      videos: [],
       collections: [],
     };
   };
@@ -138,8 +132,9 @@ export class MoviesService {
 
     const directors = await this.newNames(movieData.directors);
     const writers = await this.newNames(movieData.writers);
-    const principalCast = await this.newNames(movieData.casting.principal);
-    const extendedCast = await this.newNames(movieData.casting.extended);
+    const casting = await this.newNames(movieData.casting);
+    // const principalCast = await this.newNames(movieData.casting.principal);
+    // const extendedCast = await this.newNames(movieData.casting.extended);
 
     const picture = await this.picturesService.savePicture(
       { url: movieData.picture, name: movieData.imdbId, size: { h: 800 } },
@@ -162,7 +157,7 @@ export class MoviesService {
       genres,
       directors,
       writers,
-      casting: { principal: principalCast, extended: extendedCast },
+      casting,
     });
 
     await createdMovie.save();
@@ -177,8 +172,7 @@ export class MoviesService {
         { path: 'genres', select: '-__v' },
         { path: 'directors.name', select: '-__v' },
         { path: 'writers.name', select: '-__v' },
-        { path: 'casting.principal.name', select: '-__v' },
-        { path: 'casting.extended.name', select: '-__v' },
+        { path: 'casting.name', select: '-__v' },
       ])
       .select('-__v')
       .exec();
@@ -215,13 +209,7 @@ export class MoviesService {
         return value.split(',').map((v) => ({ collections: v }));
       }
       if (name === 'notcollection') return value.split(',').map((v) => ({ collections: { $ne: v } }));
-      if (name === 'name')
-        return [
-          { 'directors.name': value },
-          { 'writers.name': value },
-          { 'casting.principal.name': value },
-          { 'casting.extended.name': value },
-        ];
+      if (name === 'name') return [{ 'directors.name': value }, { 'writers.name': value }, { 'casting.name': value }];
       if (name === 'title')
         return [
           { originalTitle: { $regex: value, $options: 'i' } },
@@ -250,7 +238,7 @@ export class MoviesService {
 
     const select =
       format === 'full'
-        ? 'imdbId originalTitle frenchTitle englishTitle picture releaseDate duration plot genres supports videos watched collections'
+        ? 'imdbId originalTitle frenchTitle englishTitle picture releaseDate duration plot genres supports videos collections'
         : 'imdbId originalTitle frenchTitle englishTitle picture releaseDate collections';
 
     let secondarySort;
@@ -287,8 +275,7 @@ export class MoviesService {
               { path: 'genres', select: '-__v' },
               { path: 'directors.name', select: '-__v' },
               { path: 'writers.name', select: '-__v' },
-              { path: 'casting.principal.name', select: '-__v' },
-              { path: 'casting.extended.name', select: '-__v' },
+              { path: 'casting.name', select: '-__v' },
             ]
           : [],
       )
@@ -323,14 +310,14 @@ export class MoviesService {
     await this.movieModel.deleteOne({ _id: movieId }).exec();
   }
 
-  async getMovieFromRapidApi(imdbId: string): Promise<MovieDto> {
+  async getMovieFromMoviesDataBaseApi(imdbId: string): Promise<MovieDto> {
     const params = ['base_info', 'principalCast', 'extendedCast', 'creators_directors_writers'];
 
     try {
       const [baseInfo, principalCast, extendedCast, creatorsDirectorsWriters, titles] = await Promise.all([
         ...params.map((param) =>
           firstValueFrom(
-            this.httpService.get(`${process.env.RAPID_API_URL}/titles/${imdbId}`, {
+            this.httpService.get(`${process.env.RAPID_API_MOVIESDATABASE_URL}/titles/${imdbId}`, {
               headers: {
                 'X-RapidAPI-Host': process.env.RAPID_API_HOST,
                 'X-RapidAPI-Key': process.env.RAPID_API_KEY,
@@ -343,7 +330,7 @@ export class MoviesService {
           ),
         ),
         firstValueFrom(
-          this.httpService.get(`${process.env.RAPID_API_URL}/titles/${imdbId}/aka`, {
+          this.httpService.get(`${process.env.RAPID_API_MOVIESDATABASE_URL}/titles/${imdbId}/aka`, {
             headers: {
               'X-RapidAPI-Host': process.env.RAPID_API_HOST,
               'X-RapidAPI-Key': process.env.RAPID_API_KEY,
@@ -357,14 +344,67 @@ export class MoviesService {
 
       return this.formatMovieData({
         baseInfo: baseInfo.data.results,
-        principalCast: principalCast.data.results,
-        extendedCast: extendedCast.data.results,
+        cast: [...principalCast.data.results, ...extendedCast.data.results],
         creatorsDirectorsWriters: creatorsDirectorsWriters.data.results,
         titles: titles.data.results,
       });
     } catch (error) {
       throw new HttpException(`Failed to fetch movie with imdbId ${imdbId}`, error.response?.status || 500);
     }
+  }
+
+  async getMovieFromImdbApi(imdbId: string): Promise<MovieDto> {
+    const result = await firstValueFrom(
+      this.httpService.get(`${process.env.RAPID_API_IMDB_URL}/${imdbId}`, {
+        headers: {
+          'X-RapidAPI-Host': process.env.RAPID_API_IMDB_HOST,
+          'X-RapidAPI-Key': process.env.RAPID_API_KEY,
+        },
+      }),
+    );
+
+    const movieData = {
+      imdbId: result.data.id,
+      originalTitle: result.data.originalTitle,
+      frenchTitle: result.data.originalTitle,
+      englishTitle: result.data.primaryTitle,
+      picture: result.data.primaryImage,
+      releaseDate: new Date(result.data.releaseDate).toISOString(),
+      duration: result.data.runtimeMinutes,
+      plot: result.data.description,
+      countriesOfOrigin: result.data.countriesOfOrigin,
+      spokenLanguages: result.data.spokenLanguages,
+      companies: result.data.productionCompanies,
+      genres: result.data.genres.map((genre) => ({
+        id: genre,
+        text: genre,
+      })),
+      directors: result.data.directors.map((director) => ({
+        name: {
+          id: director.id,
+          text: director.fullName,
+        },
+      })),
+      writers: result.data.writers.map((writer) => ({
+        name: {
+          id: writer.id,
+          text: writer.fullName,
+        },
+      })),
+      casting: result.data.cast.map((castMember) => ({
+        name: {
+          id: castMember.id,
+          text: castMember.fullName,
+          picture: castMember.primaryImage,
+        },
+        characters: castMember.characters,
+      })),
+      supports: [],
+      videos: [result.data.trailer],
+      collections: [],
+    };
+
+    return movieData;
   }
 
   async updateMovie(movieId, updateMovieDto): Promise<MovieDocument> {
@@ -376,8 +416,15 @@ export class MoviesService {
 
     return await this.movieModel
       .findByIdAndUpdate(movieId, updateMovieDto, { new: true })
-      .select('imdbId originalTitle regionalTitles picture releaseDate directors watched')
-      .populate([{ path: 'directors.name', select: '-__v' }])
+      .select(
+        'imdbId originalTitle frenchTitle englishTitle picture releaseDate duration plot genres supports videos collections',
+      )
+      .populate([
+        { path: 'genres', select: '-__v' },
+        { path: 'directors.name', select: '-__v' },
+        { path: 'writers.name', select: '-__v' },
+        { path: 'casting.name', select: '-__v' },
+      ])
       .exec();
   }
 
@@ -504,7 +551,5 @@ export class MoviesService {
         console.error(`Error importing movie with imdbId ${movieData.imdbId}:`, error.message);
       }
     }
-
-    return;
   }
 }

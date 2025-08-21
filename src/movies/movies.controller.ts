@@ -47,13 +47,21 @@ export class MoviesController {
   }
 
   @Patch('title/:movieId')
-  async updateMovie(@Param('movieId') movieId: string, @Body() updateMovieDto: MovieDto): Promise<MovieDocument> {
+  async updateMovie(
+    @Param('movieId') movieId: string,
+    @Body() updateMovieDto: Omit<MovieDto, 'imdbId'>,
+  ): Promise<MovieDocument> {
     return await this.moviesService.updateMovie(movieId, updateMovieDto);
   }
 
   @Get('api-data/title/:imdbId')
-  async getDataFromApi(@Param('imdbId') imdbId: string): Promise<MovieDto> {
-    return await this.moviesService.getMovieFromRapidApi(imdbId);
+  async getMovieFromMoviesDataBaseApi(@Param('imdbId') imdbId: string): Promise<MovieDto> {
+    return await this.moviesService.getMovieFromMoviesDataBaseApi(imdbId);
+  }
+
+  @Get('api-imdb/title/:imdbId')
+  async getMovieFromImdbApi(@Param('imdbId') imdbId: string): Promise<MovieDto> {
+    return await this.moviesService.getMovieFromImdbApi(imdbId);
   }
 
   @Get('export')
