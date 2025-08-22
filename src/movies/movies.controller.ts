@@ -34,7 +34,7 @@ export class MoviesController {
         | 'supports';
       direction?: 'desc' | 'asc';
       filter: string | string[];
-      format: 'full' | ' lite';
+      format: 'full' | 'lite';
     },
   ): Promise<OutputDto> {
     const { start, limit, sortby, direction, format, filter } = query;
@@ -52,11 +52,6 @@ export class MoviesController {
     @Body() updateMovieDto: Omit<MovieDto, 'imdbId'>,
   ): Promise<MovieDocument> {
     return await this.moviesService.updateMovie(movieId, updateMovieDto);
-  }
-
-  @Get('api-data/title/:imdbId')
-  async getMovieFromMoviesDataBaseApi(@Param('imdbId') imdbId: string): Promise<MovieDto> {
-    return await this.moviesService.getMovieFromMoviesDataBaseApi(imdbId);
   }
 
   @Get('api-imdb/title/:imdbId')

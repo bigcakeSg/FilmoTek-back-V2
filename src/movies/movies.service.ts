@@ -1,104 +1,49 @@
-import { ConflictException, HttpException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Model } from 'mongoose';
 import { MovieDto, OutputDto, NameDto } from './dto/movie.dto';
 import { MovieDocument } from './schemas/movie.schema';
 import { GenreDocument } from 'src/genres/schemas/genre.schema';
+import { CompanieDocument } from 'src/companies/schemas/companie.schema';
 import { PicturesService } from 'src/pictures/pictures.service';
 import { NamesService } from 'src/names/names.service';
 import { CollectionsService } from 'src/collections/collections.service';
 import { PictureType } from 'src/pictures/dto/picture.dto';
 import { normalizeTitle } from 'src/utils/helpers';
 import * as fs from 'fs';
+import { NameDocument } from 'src/names/schemas/name.schema';
 @Injectable()
 export class MoviesService {
   constructor(
     @Inject('MOVIE_MODEL') private readonly movieModel: Model<MovieDocument>,
+    @Inject('NAME_MODEL') private readonly nameModel: Model<NameDocument>,
     @Inject('GENRE_MODEL') private readonly genreModel: Model<GenreDocument>,
+    @Inject('COMPANIE_MODEL') private readonly companieModel: Model<CompanieDocument>,
     private readonly httpService: HttpService,
     private readonly picturesService: PicturesService,
     private readonly namesService: NamesService,
     private readonly collectionsService: CollectionsService,
   ) {}
 
-  private async newNames(names: { name: NameDto; characters?: string[]; attributes?: string[] }[]): Promise<
+  private async newNames(names: { name: NameDto; characters?: string[]; job?: string }[]): Promise<
     {
       name: NameDto;
       characters?: string[];
-      attributes: string[];
+      job?: string;
     }[]
   > {
-    return await Promise.all(
-      names.map(async ({ name, characters, attributes }) => {
-        const newName = await this.namesService.createName({
-          ...name,
-          picture: { url: name.picture, width: 600 },
-        });
-        return { name: newName, ...(characters ? { characters } : {}), attributes };
-      }),
-    );
+    const result = [];
+    for (const { name, characters, job } of names) {
+      console.log('Creating new name:', name.text, job);
+      const newName = await this.namesService.createName({
+        ...name,
+        picture: { url: name.picture, width: 400 },
+      });
+      result.push({ name: newName, ...(characters ? { characters } : {}), job });
+    }
+    return result;
   }
-
-  private readonly formatMovieData = ({ baseInfo, cast, creatorsDirectorsWriters, titles }): MovieDto => {
-    const regionalTitles = titles.map((title) => ({
-      title: title?.title,
-      region: title?.region,
-    }));
-
-    const picture = baseInfo.primaryImage?.url;
-
-    const releaseDate = new Date(
-      baseInfo.releaseDate?.year,
-      baseInfo.releaseDate?.month - 1,
-      baseInfo.releaseDate?.day,
-    ).toISOString();
-
-    const genres =
-      baseInfo.genres?.genres.map((genre) => ({
-        id: genre?.id,
-        text: genre?.text,
-      })) || [];
-
-    const formatName = (names) => {
-      return (
-        names.map((name) => ({
-          name: {
-            id: name.name.id,
-            text: name.name.nameText.text,
-            picture: name.name?.primaryImage?.url,
-          },
-          characters: name.characters?.map((char) => char.name) || [],
-          attributes: name.attributes?.map((attr) => attr.text) || [],
-        })) || []
-      );
-    };
-
-    const directors = formatName(creatorsDirectorsWriters.directors?.[0]?.credits);
-    const writers = formatName(creatorsDirectorsWriters.writers?.[0]?.credits);
-    const casting = formatName(cast.principalCast?.[0]?.credits);
-
-    return {
-      imdbId: baseInfo.id,
-      originalTitle: baseInfo.originalTitleText.text,
-      frenchTitle: regionalTitles.find((title) => title.region === 'FR')?.title || undefined,
-      englishTitle: regionalTitles.find((title) => title.region === 'GB')?.title || undefined,
-      picture,
-      releaseDate,
-      duration: baseInfo.runtime?.seconds,
-      plot: baseInfo.plot?.plotText?.plainText,
-      countriesOfOrigin: [],
-      spokenLanguages: [],
-      companies: [],
-      genres,
-      directors,
-      writers,
-      casting,
-      supports: baseInfo.supports,
-      videos: [],
-      collections: [],
-    };
-  };
 
   async createMovie(movieData: MovieDto): Promise<string> {
     const isMovieExists = await this.movieModel
@@ -114,7 +59,7 @@ export class MoviesService {
     }
 
     const genres = await Promise.all(
-      movieData.genres.map(async (genre) => {
+      [...new Map(movieData.genres.map((item) => [item.id, item])).values()].map(async (genre) => {
         const genreId = await this.genreModel
           .exists({
             id: genre.id,
@@ -130,11 +75,24 @@ export class MoviesService {
       }),
     );
 
-    const directors = await this.newNames(movieData.directors);
-    const writers = await this.newNames(movieData.writers);
+    const companies = await Promise.all(
+      [...new Map(movieData.companies.map((item) => [item.id, item])).values()].map(async (company) => {
+        const companyId = await this.companieModel
+          .exists({
+            id: company.id,
+          })
+          .exec();
+
+        if (companyId) return companyId._id;
+        else {
+          const newCompany = new this.companieModel({ id: company.id, name: company.name });
+          await newCompany.save();
+          return newCompany._id;
+        }
+      }),
+    );
+
     const casting = await this.newNames(movieData.casting);
-    // const principalCast = await this.newNames(movieData.casting.principal);
-    // const extendedCast = await this.newNames(movieData.casting.extended);
 
     const picture = await this.picturesService.savePicture(
       { url: movieData.picture, name: movieData.imdbId, size: { h: 800 } },
@@ -154,9 +112,8 @@ export class MoviesService {
       normalizedFrenchTitle: normalizeTitle(movieData.frenchTitle ?? movieData.originalTitle),
       normalizedEnglishTitle: normalizeTitle(movieData.englishTitle ?? movieData.originalTitle),
       picture,
+      companies,
       genres,
-      directors,
-      writers,
       casting,
     });
 
@@ -169,12 +126,11 @@ export class MoviesService {
     const movie = await this.movieModel
       .findById(movieId)
       .populate([
+        { path: 'companies', select: '-__v' },
         { path: 'genres', select: '-__v' },
-        { path: 'directors.name', select: '-__v' },
-        { path: 'writers.name', select: '-__v' },
         { path: 'casting.name', select: '-__v' },
       ])
-      .select('-__v')
+      .select('-normalizedOriginalTitle -normalizedFrenchTitle -normalizedEnglishTitle -__v')
       .exec();
 
     if (!movie) throw new NotFoundException(`Movie "movieId" not found`);
@@ -193,7 +149,7 @@ export class MoviesService {
       | 'supports';
     direction?: 'desc' | 'asc';
     filter?: string | string[];
-    format?: 'full' | ' lite';
+    format?: 'full' | 'lite';
   }): Promise<OutputDto> {
     const { start, limit, sortby, direction, filter = [], format } = queries;
 
@@ -209,7 +165,7 @@ export class MoviesService {
         return value.split(',').map((v) => ({ collections: v }));
       }
       if (name === 'notcollection') return value.split(',').map((v) => ({ collections: { $ne: v } }));
-      if (name === 'name') return [{ 'directors.name': value }, { 'writers.name': value }, { 'casting.name': value }];
+      if (name === 'name') return [{ 'casting.name': value }];
       if (name === 'title')
         return [
           { originalTitle: { $regex: value, $options: 'i' } },
@@ -238,7 +194,7 @@ export class MoviesService {
 
     const select =
       format === 'full'
-        ? 'imdbId originalTitle frenchTitle englishTitle picture releaseDate duration plot genres supports videos collections'
+        ? '-normalizedOriginalTitle -normalizedFrenchTitle -normalizedEnglishTitle -__v'
         : 'imdbId originalTitle frenchTitle englishTitle picture releaseDate collections';
 
     let secondarySort;
@@ -272,9 +228,8 @@ export class MoviesService {
       .populate(
         format === 'full'
           ? [
+              { path: 'companies', select: '-__v' },
               { path: 'genres', select: '-__v' },
-              { path: 'directors.name', select: '-__v' },
-              { path: 'writers.name', select: '-__v' },
               { path: 'casting.name', select: '-__v' },
             ]
           : [],
@@ -310,49 +265,6 @@ export class MoviesService {
     await this.movieModel.deleteOne({ _id: movieId }).exec();
   }
 
-  async getMovieFromMoviesDataBaseApi(imdbId: string): Promise<MovieDto> {
-    const params = ['base_info', 'principalCast', 'extendedCast', 'creators_directors_writers'];
-
-    try {
-      const [baseInfo, principalCast, extendedCast, creatorsDirectorsWriters, titles] = await Promise.all([
-        ...params.map((param) =>
-          firstValueFrom(
-            this.httpService.get(`${process.env.RAPID_API_MOVIESDATABASE_URL}/titles/${imdbId}`, {
-              headers: {
-                'X-RapidAPI-Host': process.env.RAPID_API_HOST,
-                'X-RapidAPI-Key': process.env.RAPID_API_KEY,
-              },
-              params: {
-                limit: '1',
-                info: param,
-              },
-            }),
-          ),
-        ),
-        firstValueFrom(
-          this.httpService.get(`${process.env.RAPID_API_MOVIESDATABASE_URL}/titles/${imdbId}/aka`, {
-            headers: {
-              'X-RapidAPI-Host': process.env.RAPID_API_HOST,
-              'X-RapidAPI-Key': process.env.RAPID_API_KEY,
-            },
-            params: {
-              limit: '1',
-            },
-          }),
-        ),
-      ]);
-
-      return this.formatMovieData({
-        baseInfo: baseInfo.data.results,
-        cast: [...principalCast.data.results, ...extendedCast.data.results],
-        creatorsDirectorsWriters: creatorsDirectorsWriters.data.results,
-        titles: titles.data.results,
-      });
-    } catch (error) {
-      throw new HttpException(`Failed to fetch movie with imdbId ${imdbId}`, error.response?.status || 500);
-    }
-  }
-
   async getMovieFromImdbApi(imdbId: string): Promise<MovieDto> {
     const result = await firstValueFrom(
       this.httpService.get(`${process.env.RAPID_API_IMDB_URL}/${imdbId}`, {
@@ -379,18 +291,6 @@ export class MoviesService {
         id: genre,
         text: genre,
       })),
-      directors: result.data.directors.map((director) => ({
-        name: {
-          id: director.id,
-          text: director.fullName,
-        },
-      })),
-      writers: result.data.writers.map((writer) => ({
-        name: {
-          id: writer.id,
-          text: writer.fullName,
-        },
-      })),
       casting: result.data.cast.map((castMember) => ({
         name: {
           id: castMember.id,
@@ -398,6 +298,7 @@ export class MoviesService {
           picture: castMember.primaryImage,
         },
         characters: castMember.characters,
+        job: castMember.job,
       })),
       supports: [],
       videos: [result.data.trailer],
@@ -416,13 +317,10 @@ export class MoviesService {
 
     return await this.movieModel
       .findByIdAndUpdate(movieId, updateMovieDto, { new: true })
-      .select(
-        'imdbId originalTitle frenchTitle englishTitle picture releaseDate duration plot genres supports videos collections',
-      )
+      .select('-normalizedOriginalTitle -normalizedFrenchTitle -normalizedEnglishTitle -__v')
       .populate([
+        { path: 'companies', select: '-__v' },
         { path: 'genres', select: '-__v' },
-        { path: 'directors.name', select: '-__v' },
-        { path: 'writers.name', select: '-__v' },
         { path: 'casting.name', select: '-__v' },
       ])
       .exec();
@@ -546,10 +444,38 @@ export class MoviesService {
 
     for (const movieData of moviesData) {
       try {
-        await this.createMovie(movieData);
+        console.log(movieData.imdbId + ': ' + movieData.originalTitle);
+        const newMovie = await this.getMovieFromImdbApi(movieData.imdbId);
+        const casting = [...(newMovie.casting || [])];
+        movieData.casting.principal.forEach((cast) => {
+          const existingCast = casting.find((c) => c.name.id === cast.name.id);
+          if (!existingCast) {
+            casting.push({ ...cast, job: 'actor' });
+          }
+        });
+        movieData.casting.extended.forEach((cast) => {
+          const existingCast = casting.find((c) => c.name.id === cast.name.id);
+          if (!existingCast) {
+            casting.push({ ...cast, job: 'actor' });
+          }
+        });
+        await this.createMovie({
+          ...newMovie,
+          originalTitle: newMovie.originalTitle || movieData.originalTitle,
+          frenchTitle: movieData.frenchTitle,
+          englishTitle: newMovie.englishTitle || movieData.englishTitle,
+          picture: newMovie.picture || movieData.picture,
+          releaseDate: newMovie.releaseDate || movieData.releaseDate,
+          duration: newMovie.duration || movieData.duration,
+          plot: newMovie.plot || movieData.plot,
+          supports: movieData.supports,
+          collections: movieData.collections,
+          casting,
+        });
       } catch (error) {
         console.error(`Error importing movie with imdbId ${movieData.imdbId}:`, error.message);
       }
     }
+    console.log('=== Import completed ===');
   }
 }

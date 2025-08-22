@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { GenresModule } from './genres/genres.module';
+import { CompaniesModule } from './companies/companies.module';
 import { NamesModule } from './names/names.module';
-import { SupportsModule } from './supports/supports.module';
 import { MoviesModule } from './movies/movies.module';
 import { PicturesModule } from './pictures/pictures.module';
 import { UsersModule } from './users/users.module';
@@ -17,8 +17,8 @@ import { AuthModule } from './auth/auth.module';
       serveRoot: '/media',
     }),
     GenresModule,
+    CompaniesModule,
     NamesModule,
-    SupportsModule,
     MoviesModule,
     PicturesModule,
     UsersModule,

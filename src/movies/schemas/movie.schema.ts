@@ -45,17 +45,11 @@ export class Movie {
   @Prop({ required: false })
   spokenLanguages: string[];
 
-  // @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Company' }] })
-  // companies: mongoose.Types.ObjectId[];
+  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Companie' }] })
+  companies: mongoose.Types.ObjectId[];
 
   @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Genre' }] })
   genres: mongoose.Types.ObjectId[];
-
-  @Prop({ type: [TeamMemberSchema], default: [] })
-  directors: TeamMember[];
-
-  @Prop({ type: [TeamMemberSchema], default: [] })
-  writers: TeamMember[];
 
   @Prop({ type: [TeamMemberSchema], default: [] })
   casting: TeamMember[];

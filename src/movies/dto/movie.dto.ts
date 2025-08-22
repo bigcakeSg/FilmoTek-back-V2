@@ -17,20 +17,15 @@ export interface MovieDto {
   plot: string;
   countriesOfOrigin: string[];
   spokenLanguages: string[];
-  companies: { id: string; text: string }[];
+  companies: { id: string; name: string }[];
   genres: {
     id: string;
     text: string;
   }[];
-  directors: {
-    name: NameDto;
-  }[];
-  writers: {
-    name: NameDto;
-  }[];
   casting: {
     name: NameDto;
     characters: string[];
+    job: string;
   }[];
   supports: string[];
   videos: string[];

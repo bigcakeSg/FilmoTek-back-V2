@@ -8,6 +8,9 @@ export class TeamMember {
 
   @Prop({ type: [String], required: false })
   characters: string[];
+
+  @Prop({ type: String, required: false })
+  job: string;
 }
 
 export const TeamMemberSchema = SchemaFactory.createForClass(TeamMember);

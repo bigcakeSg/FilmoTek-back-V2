@@ -31,7 +31,7 @@ export class PicturesService {
 
       return fileName;
     } catch (error) {
-      console.log(error.message);
+      console.log('ERROR', error.message);
       return;
     }
   }
