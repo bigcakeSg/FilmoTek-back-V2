@@ -13,7 +13,8 @@ import { AuthModule } from './auth/auth.module';
 @Module({
   imports: [
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'media'),
+      // rootPath: join(__dirname, '..', 'media'),
+      rootPath: join(process.cwd(), 'media'),
       serveRoot: '/media',
     }),
     GenresModule,

@@ -12,12 +12,11 @@ import { CollectionsService } from 'src/collections/collections.service';
 import { PictureType } from 'src/pictures/dto/picture.dto';
 import { normalizeTitle } from 'src/utils/helpers';
 import * as fs from 'fs';
-import { NameDocument } from 'src/names/schemas/name.schema';
+
 @Injectable()
 export class MoviesService {
   constructor(
     @Inject('MOVIE_MODEL') private readonly movieModel: Model<MovieDocument>,
-    @Inject('NAME_MODEL') private readonly nameModel: Model<NameDocument>,
     @Inject('GENRE_MODEL') private readonly genreModel: Model<GenreDocument>,
     @Inject('COMPANIE_MODEL') private readonly companieModel: Model<CompanieDocument>,
     private readonly httpService: HttpService,
@@ -315,8 +314,24 @@ export class MoviesService {
       throw new NotFoundException(`Movie "${movieId}" not found`);
     }
 
+    let picture = movie.picture;
+    console.log(updateMovieDto.picture);
+    console.log(movie.picture);
+    if (updateMovieDto.picture && updateMovieDto.picture !== movie.picture) {
+      const date = Date.now();
+      picture = await this.picturesService.savePicture(
+        { url: updateMovieDto.picture, name: `${movie.imdbId}_${date}`, size: { h: 800 } },
+        PictureType.POSTER,
+      );
+      await this.picturesService.savePicture(
+        { url: updateMovieDto.picture, name: `${movie.imdbId}_${date}`, size: { h: 400 } },
+        PictureType.POSTER,
+        true,
+      );
+    }
+
     return await this.movieModel
-      .findByIdAndUpdate(movieId, updateMovieDto, { new: true })
+      .findByIdAndUpdate(movieId, { ...updateMovieDto, picture }, { new: true })
       .select('-normalizedOriginalTitle -normalizedFrenchTitle -normalizedEnglishTitle -__v')
       .populate([
         { path: 'companies', select: '-__v' },
