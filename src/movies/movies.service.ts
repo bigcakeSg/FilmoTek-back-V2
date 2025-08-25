@@ -315,8 +315,6 @@ export class MoviesService {
     }
 
     let picture = movie.picture;
-    console.log(updateMovieDto.picture);
-    console.log(movie.picture);
     if (updateMovieDto.picture && updateMovieDto.picture !== movie.picture) {
       const date = Date.now();
       picture = await this.picturesService.savePicture(
