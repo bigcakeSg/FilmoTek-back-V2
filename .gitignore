@@ -1,6 +1,7 @@
 todo.txt
 /media
 /backup
+/mocks
 
 # compiled output
 /dist

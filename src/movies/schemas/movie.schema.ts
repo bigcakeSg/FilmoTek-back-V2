@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { HydratedDocument } from 'mongoose';
-import { Casting, CastingSchema, TeamMember, TeamMemberSchema } from './teamMember.schema';
+import { TeamMember, TeamMemberSchema } from './teamMember.schema';
 
 export type MovieDocument = HydratedDocument<Movie>;
 
@@ -39,17 +39,20 @@ export class Movie {
   @Prop({ required: true })
   plot: string;
 
+  @Prop({ default: [] })
+  countriesOfOrigin: string[];
+
+  @Prop({ required: false })
+  spokenLanguages: string[];
+
+  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Companie' }] })
+  companies: mongoose.Types.ObjectId[];
+
   @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Genre' }] })
   genres: mongoose.Types.ObjectId[];
 
   @Prop({ type: [TeamMemberSchema], default: [] })
-  directors: TeamMember[];
-
-  @Prop({ type: [TeamMemberSchema], default: [] })
-  writers: TeamMember[];
-
-  @Prop({ type: CastingSchema, default: { principal: [], extended: [] } })
-  casting: Casting;
+  casting: TeamMember[];
 
   @Prop({ default: [] })
   supports: string[];

@@ -9,19 +9,8 @@ export class TeamMember {
   @Prop({ type: [String], required: false })
   characters: string[];
 
-  @Prop({ type: [String], default: [] })
-  attributes: string[];
+  @Prop({ type: String, required: false })
+  job: string;
 }
 
 export const TeamMemberSchema = SchemaFactory.createForClass(TeamMember);
-
-@Schema()
-export class Casting {
-  @Prop({ type: [TeamMemberSchema], default: [] })
-  principal: TeamMember[];
-
-  @Prop({ type: [TeamMemberSchema], default: [] })
-  extended: TeamMember[];
-}
-
-export const CastingSchema = SchemaFactory.createForClass(Casting);

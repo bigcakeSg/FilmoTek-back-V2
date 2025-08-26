@@ -5,6 +5,7 @@ import { MoviesService } from './movies.service';
 import { MoviesProviders } from './movies.providers';
 import { DatabaseModule } from '../database/database.module';
 import { GenresProviders } from 'src/genres/genres.providers';
+import { CompaniesProviders } from 'src/companies/companies.providers';
 import { NamesProviders } from 'src/names/names.providers';
 import { PicturesService } from 'src/pictures/pictures.service';
 import { NamesService } from 'src/names/names.service';
@@ -21,6 +22,7 @@ import { CollectionsProviders } from 'src/collections/collections.providers';
     CollectionsService,
     ...MoviesProviders,
     ...GenresProviders,
+    ...CompaniesProviders,
     ...NamesProviders,
     ...CollectionsProviders,
   ],

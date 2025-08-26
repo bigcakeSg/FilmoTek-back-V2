@@ -15,55 +15,25 @@ export interface MovieDto {
   releaseDate: string;
   duration: number;
   plot: string;
+  countriesOfOrigin: string[];
+  spokenLanguages: string[];
+  companies: { id: string; name: string }[];
   genres: {
     id: string;
     text: string;
-  }[];
-  directors?: {
-    name: NameDto;
-    attributes?: string[];
-  }[];
-  writers?: {
-    name: NameDto;
-    attributes?: string[];
   }[];
   casting: {
-    principal: {
-      name: NameDto;
-      characters: string[];
-      attributes?: string[];
-    }[];
-    extended: {
-      name: NameDto;
-      characters: string[];
-      attributes?: string[];
-    }[];
-  };
-  supports?: string[];
-  collections: string[];
-}
-
-export interface MovieOutputDto {
-  _id: string;
-  imdbId: string;
-  originalTitle: string;
-  normalizedOriginalTitle: string;
-  frenchTitle?: string;
-  normalizedFrenchTitle?: string;
-  englishTitle?: string;
-  normalizedEnglishTitle?: string;
-  picture: string;
-  releaseDate: string;
-  duration: number;
-  genres: {
-    id: string;
-    text: string;
+    name: NameDto;
+    characters: string[];
+    job: string;
   }[];
   supports: string[];
   videos: string[];
   collections: string[];
 }
-
+export interface MovieOutputDto extends MovieDto {
+  _id: string;
+}
 export interface OutputDto {
   totalCount: number;
   filterCount: number;

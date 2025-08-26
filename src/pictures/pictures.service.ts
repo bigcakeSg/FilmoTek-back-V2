@@ -19,7 +19,7 @@ export class PicturesService {
       const fileName: `${string}.${string}` =
         `${picture.name.replace(/[^\w\s]/gi, '').replace(/\s+/g, '')}.jpg` as `${string}.${string}`;
 
-      const baseName = fileName.split('-')[0];
+      const baseName = fileName.split('_')[0];
       const existingFiles = fs.readdirSync(`media/${folder}`);
       existingFiles.forEach((file) => {
         if (file.startsWith(baseName)) {
@@ -31,7 +31,7 @@ export class PicturesService {
 
       return fileName;
     } catch (error) {
-      console.log(error.message);
+      console.log('ERROR', error.message);
       return;
     }
   }

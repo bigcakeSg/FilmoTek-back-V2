@@ -10,7 +10,6 @@ export class CollectionsController {
 
   @Post()
   async createCollection(@Body() createCollectionDto: CollectionDto) {
-    console.log();
     return await this.collectionsService.createCollection(createCollectionDto);
   }
 
