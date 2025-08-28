@@ -25,6 +25,47 @@ export class MoviesService {
     private readonly collectionsService: CollectionsService,
   ) {}
 
+  private prepareFilters(filter: string | string[]): unknown {
+    const newFilter = Array.isArray(filter) ? filter : [filter];
+    const filterList = newFilter.map((f) => {
+      const splitFilter = decodeURIComponent(f).split('+');
+      const name = splitFilter[0];
+      const value = splitFilter[1];
+
+      if (name === 'genre') return [{ genres: value }];
+      if (name === 'support') return value.split(',').map((v) => ({ supports: v }));
+      if (name === 'collection') {
+        return value.split(',').map((v) => ({ collections: v }));
+      }
+      if (name === 'notcollection') return value.split(',').map((v) => ({ collections: { $ne: v } }));
+      if (name === 'name') return [{ 'casting.name': value }];
+      if (name === 'title')
+        return [
+          { originalTitle: { $regex: value, $options: 'i' } },
+          { frenchTitle: { $regex: value, $options: 'i' } },
+          { englishTitle: { $regex: value, $options: 'i' } },
+          { normalizedOriginalTitle: { $regex: value, $options: 'i' } },
+          { normalizedFrenchTitle: { $regex: value, $options: 'i' } },
+          { normalizedEnglishTitle: { $regex: value, $options: 'i' } },
+        ];
+    });
+
+    const anyFilterListe = [];
+    const collectionsFilterList = [[]];
+
+    filterList.forEach((item) => {
+      if (Object.keys(item[0])[0] === 'collections')
+        collectionsFilterList[0].push(
+          ...item.map((i: any) => ({
+            collections: i.collections,
+          })),
+        );
+      else anyFilterListe.push(item);
+    });
+
+    return { $and: anyFilterListe.concat(collectionsFilterList).map((item) => ({ $or: item })) };
+  }
+
   private async newNames(names: { name: NameDto; characters?: string[]; job?: string }[]): Promise<
     {
       name: NameDto;
@@ -132,9 +173,19 @@ export class MoviesService {
       .select('-normalizedOriginalTitle -normalizedFrenchTitle -normalizedEnglishTitle -__v')
       .exec();
 
-    if (!movie) throw new NotFoundException(`Movie "movieId" not found`);
+    if (!movie) throw new NotFoundException(`Movie "${movieId}" not found`);
 
     return movie;
+  }
+
+  async getRandomMovie(filter: string | string[]): Promise<string> {
+    const filters = filter ? this.prepareFilters(filter) : {};
+    const count = await this.movieModel.countDocuments(filters).exec();
+    const random = Math.floor(Math.random() * count);
+
+    const movie = await this.movieModel.findOne(filters).skip(random).select('_id').exec();
+
+    return movie._id.toString();
   }
 
   async getAllMovies(queries: {
@@ -151,45 +202,7 @@ export class MoviesService {
     format?: 'full' | 'lite';
   }): Promise<OutputDto> {
     const { start, limit, sortby, direction, filter = [], format } = queries;
-
-    const newFilter = Array.isArray(filter) ? filter : [filter];
-    const filterList = newFilter.map((f) => {
-      const splitFilter = decodeURIComponent(f).split('+');
-      const name = splitFilter[0];
-      const value = splitFilter[1];
-
-      if (name === 'genre') return [{ genres: value }];
-      if (name === 'support') return value.split(',').map((v) => ({ supports: v }));
-      if (name === 'collection') {
-        return value.split(',').map((v) => ({ collections: v }));
-      }
-      if (name === 'notcollection') return value.split(',').map((v) => ({ collections: { $ne: v } }));
-      if (name === 'name') return [{ 'casting.name': value }];
-      if (name === 'title')
-        return [
-          { originalTitle: { $regex: value, $options: 'i' } },
-          { frenchTitle: { $regex: value, $options: 'i' } },
-          { englishTitle: { $regex: value, $options: 'i' } },
-          { normalizedOriginalTitle: { $regex: value, $options: 'i' } },
-          { normalizedFrenchTitle: { $regex: value, $options: 'i' } },
-          { normalizedEnglishTitle: { $regex: value, $options: 'i' } },
-        ];
-    });
-
-    const anyFilterListe = [];
-    const collectionsFilterList = [[]];
-
-    filterList.forEach((item) => {
-      if (Object.keys(item[0])[0] === 'collections')
-        collectionsFilterList[0].push(
-          ...item.map((i: any) => ({
-            collections: i.collections,
-          })),
-        );
-      else anyFilterListe.push(item);
-    });
-
-    const filters = { $and: anyFilterListe.concat(collectionsFilterList).map((item) => ({ $or: item })) };
+    const filters = this.prepareFilters(filter);
 
     const select =
       format === 'full'

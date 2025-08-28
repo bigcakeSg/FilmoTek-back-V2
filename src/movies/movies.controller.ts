@@ -14,6 +14,17 @@ export class MoviesController {
   }
 
   @Public()
+  @Get('title/random')
+  async getRandomMovie(
+    @Query()
+    query: {
+      filter: string | string[];
+    },
+  ): Promise<string> {
+    return this.moviesService.getRandomMovie(query.filter);
+  }
+
+  @Public()
   @Get('title/:movieId')
   async getOneMovie(@Param() params: { movieId: string }): Promise<MovieDocument> {
     return this.moviesService.getOneMovie(params.movieId);
