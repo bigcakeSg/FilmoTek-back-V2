@@ -20,7 +20,7 @@ export class StatsController {
 
   @Public()
   @Get('bydate')
-  getStatsByDate() {
+  getStatsByDate(): Promise<Record<string, any>> {
     return this.statsService.getStatsByDate();
   }
 }

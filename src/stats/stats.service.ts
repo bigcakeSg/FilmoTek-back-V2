@@ -46,7 +46,7 @@ export class StatsService {
     return sortedGenres;
   }
 
-  async getStatsByDate() {
+  async getStatsByDate(): Promise<Record<string, any>> {
     const movies = await this.movieModel.find().exec();
     const services = await this.genresService.getAllGenres();
 
