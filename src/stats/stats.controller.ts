@@ -8,13 +8,13 @@ export class StatsController {
 
   @Public()
   @Get('bysupport')
-  getStatsBySupport() {
+  getStatsBySupport(): Promise<Record<string, number>> {
     return this.statsService.getStatsBySupport();
   }
 
   @Public()
   @Get('bygenre')
-  getStatsByGenre() {
+  getStatsByGenre(): Promise<Record<string, number>> {
     return this.statsService.getStatsByGenre();
   }
 
