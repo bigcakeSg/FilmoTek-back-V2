@@ -81,4 +81,10 @@ export class StatsService {
 
     return groupedYears;
   }
+
+  async getStatsDuration(): Promise<number> {
+    const movies = await this.movieModel.find().exec();
+    const totalDuration = movies.reduce((acc, movie) => acc + (movie.duration || 0), 0);
+    return totalDuration;
+  }
 }

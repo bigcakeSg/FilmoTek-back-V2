@@ -23,4 +23,10 @@ export class StatsController {
   getStatsByDate(): Promise<Record<string, any>> {
     return this.statsService.getStatsByDate();
   }
+
+  @Public()
+  @Get('duration')
+  getStatsDuration(): Promise<number> {
+    return this.statsService.getStatsDuration();
+  }
 }
