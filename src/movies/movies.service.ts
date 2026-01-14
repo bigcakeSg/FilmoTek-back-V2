@@ -278,6 +278,18 @@ export class MoviesService {
   }
 
   async getMovieFromImdbApi(imdbId: string): Promise<MovieDto> {
+    const isMovieExists = await this.movieModel
+      .findOne({
+        imdbId,
+      })
+      .exec();
+
+    if (isMovieExists) {
+      throw new ConflictException(
+        `Movie with imdbId ${imdbId} already exists (${isMovieExists.get('_id').toString()}).`,
+      );
+    }
+
     const result = await firstValueFrom(
       this.httpService.get(`${process.env.RAPID_API_IMDB_URL}/${imdbId}`, {
         headers: {
